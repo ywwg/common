@@ -380,7 +380,6 @@ func TestProtoDecoder(t *testing.T) {
 				if err == nil {
 					t.Fatal("Expected error when decoding without UTF-8 support enabled but got none")
 				}
-                model.NameValidationScheme = model.UTF8Validation
 				model.NameValidationScheme = model.UTF8Validation
 				dec = &SampleDecoder{
 					Dec: &protoDecoder{r: strings.NewReader(scenario.in)},
