@@ -16,6 +16,7 @@ package expfmt
 import (
 	"bufio"
 	"io"
+	"math"
 	"net/http"
 	"reflect"
 	"sort"
@@ -104,9 +105,10 @@ func TestProtoDecoder(t *testing.T) {
 	var testTime = model.Now()
 
 	scenarios := []struct {
-		in       string
-		expected model.Vector
-		fail     bool
+		in             string
+		expected       model.Vector
+		legacyNameFail bool
+		fail           bool
 	}{
 		{
 			in: "",
@@ -332,6 +334,30 @@ func TestProtoDecoder(t *testing.T) {
 				},
 			},
 		},
+		{
+			in:             "\xa8\x01\n\ngauge.name\x12\x11gauge\ndoc\nstr\"ing\x18\x01\"T\n\x1b\n\x06name.1\x12\x11val with\nnew line\n*\n\x06name*2\x12 val with \\backslash and \"quotes\"\x12\t\t\x00\x00\x00\x00\x00\x00\xf0\x7f\"/\n\x10\n\x06name.1\x12\x06Björn\n\x10\n\x06name*2\x12\x06佖佥\x12\t\t\xd1\xcfD\xb9\xd0\x05\xc2H",
+			legacyNameFail: true,
+			expected: model.Vector{
+				&model.Sample{
+					Metric: model.Metric{
+						model.MetricNameLabel: "gauge.name",
+						"name.1":              "val with\nnew line",
+						"name*2":              "val with \\backslash and \"quotes\"",
+					},
+					Value:     model.SampleValue(math.Inf(+1)),
+					Timestamp: testTime,
+				},
+				&model.Sample{
+					Metric: model.Metric{
+						model.MetricNameLabel: "gauge.name",
+						"name.1":              "Björn",
+						"name*2":              "佖佥",
+					},
+					Value:     3.14e42,
+					Timestamp: testTime,
+				},
+			},
+		},
 	}
 
 	for i, scenario := range scenarios {
@@ -348,6 +374,24 @@ func TestProtoDecoder(t *testing.T) {
 			err := dec.Decode(&smpls)
 			if err == io.EOF {
 				break
+			}
+			if scenario.legacyNameFail {
+				if err == nil {
+					t.Fatal("Expected error when decoding without UTF-8 support enabled but got none")
+				}
+				dec := &SampleDecoder{
+					Dec: &protoDecoder{
+						r:         strings.NewReader(scenario.in),
+						utf8Names: true,
+					},
+					Opts: &DecodeOptions{
+						Timestamp: testTime,
+					},
+				}
+				err = dec.Decode(&smpls)
+				if err == io.EOF {
+					break
+				}
 			}
 			if scenario.fail {
 				if err == nil {
@@ -435,7 +479,7 @@ func TestExtractSamples(t *testing.T) {
 			Help: proto.String("Help for foo."),
 			Type: dto.MetricType_COUNTER.Enum(),
 			Metric: []*dto.Metric{
-				&dto.Metric{
+				{
 					Counter: &dto.Counter{
 						Value: proto.Float64(4711),
 					},
@@ -447,7 +491,7 @@ func TestExtractSamples(t *testing.T) {
 			Help: proto.String("Help for bar."),
 			Type: dto.MetricType_GAUGE.Enum(),
 			Metric: []*dto.Metric{
-				&dto.Metric{
+				{
 					Gauge: &dto.Gauge{
 						Value: proto.Float64(3.14),
 					},
@@ -459,7 +503,7 @@ func TestExtractSamples(t *testing.T) {
 			Help: proto.String("Help for bad."),
 			Type: dto.MetricType(42).Enum(),
 			Metric: []*dto.Metric{
-				&dto.Metric{
+				{
 					Gauge: &dto.Gauge{
 						Value: proto.Float64(2.7),
 					},

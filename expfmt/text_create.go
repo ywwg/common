@@ -73,6 +73,11 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 		return 0, fmt.Errorf("MetricFamily has no name: %s", in)
 	}
 
+	// If the name does not satisfy the legacy validity check, we must quote it.
+	quotedName := name
+	if !model.IsValidMetricName(model.LabelValue(quotedName), false) {
+		quotedName = fmt.Sprintf(`"%s"`, quotedName)
+	}
 	// Try the interface upgrade. If it doesn't work, we'll use a
 	// bufio.Writer from the sync.Pool.
 	w, ok := out.(enhancedWriter)
@@ -98,7 +103,7 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 		if err != nil {
 			return
 		}
-		n, err = w.WriteString(name)
+		n, err = w.WriteString(quotedName)
 		written += n
 		if err != nil {
 			return
@@ -124,7 +129,7 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 	if err != nil {
 		return
 	}
-	n, err = w.WriteString(name)
+	n, err = w.WriteString(quotedName)
 	written += n
 	if err != nil {
 		return
@@ -280,21 +285,9 @@ func writeSample(
 	additionalLabelName string, additionalLabelValue float64,
 	value float64,
 ) (int, error) {
-	var written int
-	n, err := w.WriteString(name)
-	written += n
-	if err != nil {
-		return written, err
-	}
-	if suffix != "" {
-		n, err = w.WriteString(suffix)
-		written += n
-		if err != nil {
-			return written, err
-		}
-	}
-	n, err = writeLabelPairs(
-		w, metric.Label, additionalLabelName, additionalLabelValue,
+	written := 0
+	n, err := writeNameAndLabelPairs(
+		w, name+suffix, metric.Label, additionalLabelName, additionalLabelValue,
 	)
 	written += n
 	if err != nil {
@@ -330,32 +323,67 @@ func writeSample(
 	return written, nil
 }
 
-// writeLabelPairs converts a slice of LabelPair proto messages plus the
+// writeNameAndLabelPairs converts a slice of LabelPair proto messages plus the
 // explicitly given additional label pair into text formatted as required by the
 // text format and writes it to 'w'. An empty slice in combination with an empty
 // string 'additionalLabelName' results in nothing being written. Otherwise, the
 // label pairs are written, escaped as required by the text format, and enclosed
 // in '{...}'. The function returns the number of bytes written and any error
 // encountered.
-func writeLabelPairs(
+func writeNameAndLabelPairs(
 	w enhancedWriter,
+	name string,
 	in []*dto.LabelPair,
 	additionalLabelName string, additionalLabelValue float64,
 ) (int, error) {
-	if len(in) == 0 && additionalLabelName == "" {
-		return 0, nil
-	}
 	var (
 		written   int
 		separator byte = '{'
+		metricInsideBraces = false
 	)
+
+	if name != "" { 
+		// If the name does not pass the legacy validity check, we must put the
+		// metric name inside the braces. Note, it will already have been 
+		if !model.IsValidMetricName(model.LabelValue(name), false) {
+			metricInsideBraces = true
+			err := w.WriteByte(separator)
+			written++
+			if err != nil {
+				return written, err
+			}
+			name = fmt.Sprintf(`"%s"`, name)
+			separator = ','
+		}
+		n, err := w.WriteString(name)
+		written += n
+		if err != nil {
+			return written, err
+		}
+	}
+
+	if len(in) == 0 && additionalLabelName == "" {
+		if metricInsideBraces {
+			err := w.WriteByte('}')
+			written++
+			if err != nil {
+				return written, err
+			}
+		}
+		return written, nil
+	}
+
 	for _, lp := range in {
 		err := w.WriteByte(separator)
 		written++
 		if err != nil {
 			return written, err
 		}
-		n, err := w.WriteString(lp.GetName())
+		labelName := lp.GetName()
+		if !model.IsValidMetricName(model.LabelValue(labelName), false) {
+			labelName = fmt.Sprintf(`"%s"`, labelName)
+		}
+		n, err := w.WriteString(labelName)
 		written += n
 		if err != nil {
 			return written, err

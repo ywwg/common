@@ -101,7 +101,7 @@ func TestAlertValidate(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		err := c.alert.Validate()
+		err := c.alert.Validate(false)
 		if err == nil {
 			if c.err == "" {
 				continue

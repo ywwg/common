@@ -82,55 +82,73 @@ func BenchmarkMetric(b *testing.B) {
 	}
 }
 
-func TestMetricNameIsValid(t *testing.T) {
+func TestMetricNameIsLegacyValid(t *testing.T) {
 	var scenarios = []struct {
 		mn    LabelValue
-		valid bool
+		legacyValid bool
+		utf8Valid bool
 	}{
 		{
 			mn:    "Avalid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			mn:    "_Avalid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			mn:    "1valid_23name",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
 		},
 		{
 			mn:    "avalid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			mn:    "Ava:lid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			mn:    "a lid_23name",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
 		},
 		{
 			mn:    ":leading_colon",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			mn:    "colon:in:the:middle",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			mn:    "",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: false,
+		},
+		{
+			mn:    "a\xc5z",
+			legacyValid: false,
+			utf8Valid: false,
 		},
 	}
 
 	for _, s := range scenarios {
-		if IsValidMetricName(s.mn) != s.valid {
-			t.Errorf("Expected %v for %q using IsValidMetricName function", s.valid, s.mn)
+		if IsValidMetricName(s.mn, false) != s.legacyValid {
+			t.Errorf("Expected %v for %q using legacy IsValidMetricName method", s.legacyValid, s.mn)
 		}
-		if MetricNameRE.MatchString(string(s.mn)) != s.valid {
-			t.Errorf("Expected %v for %q using regexp matching", s.valid, s.mn)
+		if MetricNameRE.MatchString(string(s.mn)) != s.legacyValid {
+			t.Errorf("Expected %v for %q using regexp matching", s.legacyValid, s.mn)
+		}
+		if IsValidMetricName(s.mn, true) != s.utf8Valid {
+			t.Errorf("Expected %v for %q using utf8 IsValidMetricName method", s.legacyValid, s.mn)
 		}
 	}
 }

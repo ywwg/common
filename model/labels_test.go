@@ -93,48 +93,65 @@ func BenchmarkLabelValues(b *testing.B) {
 func TestLabelNameIsValid(t *testing.T) {
 	var scenarios = []struct {
 		ln    LabelName
-		valid bool
+		legacyValid bool
+		utf8Valid bool
 	}{
 		{
 			ln:    "Avalid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			ln:    "_Avalid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			ln:    "1valid_23name",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
 		},
 		{
 			ln:    "avalid_23name",
-			valid: true,
+			legacyValid: true,
+			utf8Valid: true,
 		},
 		{
 			ln:    "Ava:lid_23name",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
 		},
 		{
 			ln:    "a lid_23name",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
 		},
 		{
 			ln:    ":leading_colon",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
 		},
 		{
 			ln:    "colon:in:the:middle",
-			valid: false,
+			legacyValid: false,
+			utf8Valid: true,
+		},
+		{
+			ln: "a\xc5z",
+			legacyValid: false,
+			utf8Valid: false,
 		},
 	}
 
 	for _, s := range scenarios {
-		if s.ln.IsValid() != s.valid {
-			t.Errorf("Expected %v for %q using IsValid method", s.valid, s.ln)
+		if s.ln.IsValid(false) != s.legacyValid {
+			t.Errorf("Expected %v for %q using legacy IsValid method", s.legacyValid, s.ln)
 		}
-		if LabelNameRE.MatchString(string(s.ln)) != s.valid {
-			t.Errorf("Expected %v for %q using regexp match", s.valid, s.ln)
+		if LabelNameRE.MatchString(string(s.ln)) != s.legacyValid {
+			t.Errorf("Expected %v for %q using legacy regexp match", s.legacyValid, s.ln)
+		}
+		if s.ln.IsValid(true) != s.utf8Valid {
+			t.Errorf("Expected %v for %q using UTF8 IsValid method", s.legacyValid, s.ln)
 		}
 	}
 }
