@@ -15,7 +15,6 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -105,6 +104,9 @@ func (ln LabelName) IsValid() bool {
 	if len(ln) == 0 {
 		return false
 	}
+	if isUtf8 {
+		return utf8.ValidString(string(ln))
+	}
 	switch NameValidationScheme {
 	case LegacyValidation:
 		for i, b := range ln {
@@ -120,27 +122,25 @@ func (ln LabelName) IsValid() bool {
 	return true
 }
 
-// UnmarshalYAML implements the yaml.Unmarshaler interface.
+// UnmarshalYAML implements the yaml.Unmarshaler interface. It does not do
+// validation of the names. Callers should call Validate on the resulting name
+// themselves.
 func (ln *LabelName) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var s string
 	if err := unmarshal(&s); err != nil {
 		return err
 	}
-	if !LabelName(s).IsValid() {
-		return fmt.Errorf("%q is not a valid label name", s)
-	}
 	*ln = LabelName(s)
 	return nil
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface.
+// UnmarshalJSON implements the json.Unmarshaler interface. It does not do
+// validation of the names. Callers should call Validate on the resulting name
+// themselves.
 func (ln *LabelName) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
-	}
-	if !LabelName(s).IsValid() {
-		return fmt.Errorf("%q is not a valid label name", s)
 	}
 	*ln = LabelName(s)
 	return nil

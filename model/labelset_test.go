@@ -54,9 +54,13 @@ func TestUnmarshalJSONLabelSet(t *testing.T) {
 
 	NameValidationScheme = LegacyValidation
 	err = json.Unmarshal([]byte(invalidlabelSetJSON), &c)
-	expectedErr := `"1nvalid_23name" is not a valid label name`
+	if err != nil {
+		t.Errorf("expected no error, got: %v", err)
+	}
+	err = c.LabelSet.Validate(false)
+	expectedErr := `invalid name "1nvalid_23name"`
 	if err == nil || err.Error() != expectedErr {
-		t.Errorf("expected an error with message '%s' to be thrown", expectedErr)
+		t.Errorf("expected an error with message '%s' to be thrown, got: %v", expectedErr, err)
 	}
 }
 

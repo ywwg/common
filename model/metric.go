@@ -136,6 +136,9 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	if len(n) == 0 {
 		return false
 	}
+	if isUtf8 {
+		return utf8.ValidString(string(n))
+	}
 	for i, b := range n {
 		if !((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == ':' || (b >= '0' && b <= '9' && i > 0)) {
 			return false

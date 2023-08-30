@@ -85,6 +85,11 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 		return 0, fmt.Errorf("MetricFamily has no name: %s", in)
 	}
 
+	// If the name does not satisfy the legacy validity check, we must quote it.
+	quotedName := name
+	if !model.IsValidMetricName(model.LabelValue(quotedName), false) {
+		quotedName = fmt.Sprintf(`"%s"`, quotedName)
+	}
 	// Try the interface upgrade. If it doesn't work, we'll use a
 	// bufio.Writer from the sync.Pool.
 	w, ok := out.(enhancedWriter)

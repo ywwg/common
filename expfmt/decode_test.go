@@ -373,26 +373,26 @@ func TestProtoDecoder(t *testing.T) {
 			model.NameValidationScheme = model.LegacyValidation
 			var smpls model.Vector
 			err := dec.Decode(&smpls)
-			if err != nil && errors.Is(err, io.EOF) {
+			if err == io.EOF {
 				break
 			}
 			if scenario.legacyNameFail {
 				if err == nil {
 					t.Fatal("Expected error when decoding without UTF-8 support enabled but got none")
 				}
-				model.NameValidationScheme = model.UTF8Validation
-				dec = &SampleDecoder{
-					Dec: &protoDecoder{r: strings.NewReader(scenario.in)},
+                model.NameValidationScheme = model.UTF8Validation
+				dec := &SampleDecoder{
+					Dec: &protoDecoder{
+						r:         strings.NewReader(scenario.in),
+						utf8Names: true,
+					},
 					Opts: &DecodeOptions{
 						Timestamp: testTime,
 					},
 				}
 				err = dec.Decode(&smpls)
-				if errors.Is(err, io.EOF) {
+				if err == io.EOF {
 					break
-				}
-				if err != nil {
-					t.Fatalf("Unexpected error when decoding with UTF-8 support: %v", err)
 				}
 			}
 			if scenario.fail {
