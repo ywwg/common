@@ -50,6 +50,9 @@ var (
 	// names. Note that the IsValidMetricName function performs the same
 	// check but faster than a match with this regular expression.
 	MetricNameRE = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
+	// NameValidationScheme determines the default method of name validation to be
+	// used. To avoid need for locking, this value should be set once, probably in
+	// an init(), before multiple goroutines are started.
 	NameValidationScheme = LegacyValidation
 )
 
@@ -145,20 +148,3 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	return true
 }
 
-// IsValidMetricName returns true iff name matches the pattern of MetricNameRE
-// for legacy names, and iff it's valid UTF-8 if isUtf8 is true.
-// This function, however, does not use MetricNameRE for the check but a much
-// faster hardcoded implementation.
-func IsValidMetricName(n LabelValue) bool {
-	switch NameValidationScheme {
-		case LegacyValidation:
-			return IsValidLegacyMetricName(n)
-		case UTF8Validation:
-			if len(n) == 0 {
-				return false
-			}
-			return utf8.ValidString(string(n))
-		default:
-			panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme)) 
-	}
-}
