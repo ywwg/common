@@ -147,4 +147,3 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	}
 	return true
 }
-
