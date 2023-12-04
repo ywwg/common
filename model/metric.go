@@ -33,6 +33,9 @@ var (
 	// names. Note that the IsValidMetricName function performs the same
 	// check but faster than a match with this regular expression.
 	MetricNameRE = regexp.MustCompile(`^[a-zA-Z_:][a-zA-Z0-9_:]*$`)
+	// NameValidationScheme determines the default method of name validation to be
+	// used. To avoid need for locking, this value should be set once, probably in
+	// an init(), before multiple goroutines are started.
 	NameValidationScheme = LegacyValidation
 )
 
@@ -95,8 +98,26 @@ func (m Metric) FastFingerprint() Fingerprint {
 	return LabelSet(m).FastFingerprint()
 }
 
-// IsValidLegacyMetricName returns true iff name matches the pattern of MetricNameRE
-// for legacy names.
+// IsValidMetricName returns true iff name matches the pattern of MetricNameRE
+// for legacy names, and iff it's valid UTF-8 if the UTF8Validation scheme is
+// selected.
+func IsValidMetricName(n LabelValue) bool {
+	switch NameValidationScheme {
+		case LegacyValidation:
+			return IsValidLegacyMetricName(n)
+		case UTF8Validation:
+			if len(n) == 0 {
+				return false
+			}
+			return utf8.ValidString(string(n))
+		default:
+			panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme)) 
+	}
+}
+
+// IsValidLegacyMetricName is similar to IsValidMetricName but always uses the
+// legacy validation scheme regardless of the value of NameValidationScheme. It
+// returns true iff name matches the pattern of MetricNameRE for legacy names.
 // This function, however, does not use MetricNameRE for the check but a much
 // faster hardcoded implementation.
 func IsValidLegacyMetricName(n LabelValue) bool {
@@ -111,20 +132,3 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	return true
 }
 
-// IsValidMetricName returns true iff name matches the pattern of MetricNameRE
-// for legacy names, and iff it's valid UTF-8 if isUtf8 is true.
-// This function, however, does not use MetricNameRE for the check but a much
-// faster hardcoded implementation.
-func IsValidMetricName(n LabelValue) bool {
-	switch NameValidationScheme {
-		case LegacyValidation:
-			return IsValidLegacyMetricName(n)
-		case UTF8Validation:
-			if len(n) == 0 {
-				return false
-			}
-			return utf8.ValidString(string(n))
-		default:
-			panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme)) 
-	}
-}
