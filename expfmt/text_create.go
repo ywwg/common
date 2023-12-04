@@ -88,7 +88,7 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 	// If the name does not satisfy the legacy validity check, we must quote it.
 	quotedName := name
 	if !model.IsValidLegacyMetricName(model.LabelValue(quotedName)) {
-		quotedName = fmt.Sprintf(`"%s"`, quotedName)
+		quotedName = strconv.Quote(quotedName)
 	}
 	// Try the interface upgrade. If it doesn't work, we'll use a
 	// bufio.Writer from the sync.Pool.
