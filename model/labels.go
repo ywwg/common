@@ -106,16 +106,16 @@ func (ln LabelName) IsValid() bool {
 		return false
 	}
 	switch NameValidationScheme {
-		case LegacyValidation:
-			for i, b := range ln {
-				if !((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || (b >= '0' && b <= '9' && i > 0)) {
-					return false
-				}
+	case LegacyValidation:
+		for i, b := range ln {
+			if !((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || (b >= '0' && b <= '9' && i > 0)) {
+				return false
 			}
-		case UTF8Validation:
-			return utf8.ValidString(string(ln))
-		default:
-			panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme)) 
+		}
+	case UTF8Validation:
+		return utf8.ValidString(string(ln))
+	default:
+		panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme))
 	}
 	return true
 }
