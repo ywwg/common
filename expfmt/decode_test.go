@@ -381,11 +381,9 @@ func TestProtoDecoder(t *testing.T) {
 					t.Fatal("Expected error when decoding without UTF-8 support enabled but got none")
 				}
                 model.NameValidationScheme = model.UTF8Validation
-				dec := &SampleDecoder{
-					Dec: &protoDecoder{
-						r:         strings.NewReader(scenario.in),
-						utf8Names: true,
-					},
+				model.NameValidationScheme = model.UTF8Validation
+				dec = &SampleDecoder{
+					Dec: &protoDecoder{r: strings.NewReader(scenario.in)},
 					Opts: &DecodeOptions{
 						Timestamp: testTime,
 					},
@@ -393,6 +391,9 @@ func TestProtoDecoder(t *testing.T) {
 				err = dec.Decode(&smpls)
 				if err == io.EOF {
 					break
+				}
+				if err != nil {
+					t.Fatalf("Unexpected error when decoding with UTF-8 support: %v", err)
 				}
 			}
 			if scenario.fail {

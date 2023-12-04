@@ -45,8 +45,8 @@ func (m *Matcher) UnmarshalJSON(b []byte) error {
 }
 
 // Validate returns true iff all fields of the matcher have valid values.
-func (m *Matcher) Validate(utf8Names bool) error {
-	if !m.Name.IsValid(utf8Names) {
+func (m *Matcher) Validate() error {
+	if !m.Name.IsValid() {
 		return fmt.Errorf("invalid name %q", m.Name)
 	}
 	if m.IsRegex {
@@ -80,8 +80,16 @@ func (s *Silence) Validate() error {
 		return fmt.Errorf("at least one matcher required")
 	}
 	for _, m := range s.Matchers {
+<<<<<<< HEAD
 		if err := m.Validate(false); err != nil {
 			return fmt.Errorf("invalid matcher: %w", err)
+||||||| parent of 6440f53 (Try the library-wide setting)
+		if err := m.Validate(false); err != nil {
+			return fmt.Errorf("invalid matcher: %s", err)
+=======
+		if err := m.Validate(); err != nil {
+			return fmt.Errorf("invalid matcher: %s", err)
+>>>>>>> 6440f53 (Try the library-wide setting)
 		}
 	}
 	if s.StartsAt.IsZero() {

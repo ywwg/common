@@ -15,6 +15,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -122,25 +123,27 @@ func (ln LabelName) IsValid() bool {
 	return true
 }
 
-// UnmarshalYAML implements the yaml.Unmarshaler interface. It does not do
-// validation of the names. Callers should call Validate on the resulting name
-// themselves.
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
 func (ln *LabelName) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var s string
 	if err := unmarshal(&s); err != nil {
 		return err
 	}
+	if !LabelName(s).IsValid() {
+		return fmt.Errorf("%q is not a valid label name", s)
+	}
 	*ln = LabelName(s)
 	return nil
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface. It does not do
-// validation of the names. Callers should call Validate on the resulting name
-// themselves.
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (ln *LabelName) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
+	}
+	if !LabelName(s).IsValid() {
+		return fmt.Errorf("%q is not a valid label name", s)
 	}
 	*ln = LabelName(s)
 	return nil

@@ -80,16 +80,9 @@ func NewDecoder(r io.Reader, format Format) Decoder {
 	return &textDecoder{r: r}
 }
 
-// WithUTF8Names enables support for UTF-8 metric and label names.
-func (d *protoDecoder) WithUTF8Names(enable bool) Decoder {
-	d.utf8Names = enable
-	return d
-}
-
 // protoDecoder implements the Decoder interface for protocol buffers.
 type protoDecoder struct {
-	r         io.Reader
-	utf8Names bool // if false, metric names will be constrained to MetricNameRE. Otherwise, strings are checked to be valid UTF8.
+	r io.Reader
 }
 
 // Decode implements the Decoder interface.
@@ -100,7 +93,7 @@ func (d *protoDecoder) Decode(v *dto.MetricFamily) error {
 	if err := opts.UnmarshalFrom(bufio.NewReader(d.r), v); err != nil {
 		return err
 	}
-	if !model.IsValidMetricName(model.LabelValue(v.GetName()), d.utf8Names) {
+	if !model.IsValidMetricName(model.LabelValue(v.GetName())) {
 		return fmt.Errorf("invalid metric name %q", v.GetName())
 	}
 	for _, m := range v.GetMetric() {
@@ -114,7 +107,7 @@ func (d *protoDecoder) Decode(v *dto.MetricFamily) error {
 			if !model.LabelValue(l.GetValue()).IsValid() {
 				return fmt.Errorf("invalid label value %q", l.GetValue())
 			}
-			if !model.LabelName(l.GetName()).IsValid(d.utf8Names) {
+			if !model.LabelName(l.GetName()).IsValid() {
 				return fmt.Errorf("invalid label name %q", l.GetName())
 			}
 		}

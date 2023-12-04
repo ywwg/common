@@ -104,7 +104,7 @@ func MetricFamilyToOpenMetrics(out io.Writer, in *dto.MetricFamily) (written int
 	}
 	// If the name does not satisfy the legacy validity check, we must quote it.
 	quotedName := shortName
-	if !model.IsValidMetricName(model.LabelValue(quotedName), false) {
+	if !model.IsValidLegacyMetricName(model.LabelValue(quotedName)) {
 		quotedName = fmt.Sprintf(`"%s"`, quotedName)
 	}
 
