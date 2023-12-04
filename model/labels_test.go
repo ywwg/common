@@ -92,54 +92,54 @@ func BenchmarkLabelValues(b *testing.B) {
 
 func TestLabelNameIsValid(t *testing.T) {
 	var scenarios = []struct {
-		ln    LabelName
+		ln          LabelName
 		legacyValid bool
-		utf8Valid bool
+		utf8Valid   bool
 	}{
 		{
-			ln:    "Avalid_23name",
+			ln:          "Avalid_23name",
 			legacyValid: true,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    "_Avalid_23name",
+			ln:          "_Avalid_23name",
 			legacyValid: true,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    "1valid_23name",
+			ln:          "1valid_23name",
 			legacyValid: false,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    "avalid_23name",
+			ln:          "avalid_23name",
 			legacyValid: true,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    "Ava:lid_23name",
+			ln:          "Ava:lid_23name",
 			legacyValid: false,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    "a lid_23name",
+			ln:          "a lid_23name",
 			legacyValid: false,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    ":leading_colon",
+			ln:          ":leading_colon",
 			legacyValid: false,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln:    "colon:in:the:middle",
+			ln:          "colon:in:the:middle",
 			legacyValid: false,
-			utf8Valid: true,
+			utf8Valid:   true,
 		},
 		{
-			ln: "a\xc5z",
+			ln:          "a\xc5z",
 			legacyValid: false,
-			utf8Valid: false,
+			utf8Valid:   false,
 		},
 	}
 

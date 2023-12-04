@@ -25,7 +25,7 @@ type validationSchemeId int
 
 const (
 	LegacyValidation = validationSchemeId(0)
-	UTF8Validation = validationSchemeId(1)
+	UTF8Validation   = validationSchemeId(1)
 )
 
 var (
@@ -103,15 +103,15 @@ func (m Metric) FastFingerprint() Fingerprint {
 // selected.
 func IsValidMetricName(n LabelValue) bool {
 	switch NameValidationScheme {
-		case LegacyValidation:
-			return IsValidLegacyMetricName(n)
-		case UTF8Validation:
-			if len(n) == 0 {
-				return false
-			}
-			return utf8.ValidString(string(n))
-		default:
-			panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme)) 
+	case LegacyValidation:
+		return IsValidLegacyMetricName(n)
+	case UTF8Validation:
+		if len(n) == 0 {
+			return false
+		}
+		return utf8.ValidString(string(n))
+	default:
+		panic(fmt.Sprintf("Invalid name validation scheme requested: %d", NameValidationScheme))
 	}
 }
 
@@ -131,4 +131,3 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	}
 	return true
 }
-

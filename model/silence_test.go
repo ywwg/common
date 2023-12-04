@@ -21,9 +21,9 @@ import (
 
 func TestMatcherValidate(t *testing.T) {
 	var cases = []struct {
-		matcher *Matcher
-		legacyErr     string
-		utf8Err string
+		matcher   *Matcher
+		legacyErr string
+		utf8Err   string
 	}{
 		{
 			matcher: &Matcher{
@@ -51,7 +51,7 @@ func TestMatcherValidate(t *testing.T) {
 				Value: "value",
 			},
 			legacyErr: "invalid name",
-			utf8Err: "invalid name",
+			utf8Err:   "invalid name",
 		},
 		{
 			matcher: &Matcher{
@@ -59,7 +59,7 @@ func TestMatcherValidate(t *testing.T) {
 				Value: "value\xff",
 			},
 			legacyErr: "invalid value",
-			utf8Err: "invalid value",
+			utf8Err:   "invalid value",
 		},
 		{
 			matcher: &Matcher{
@@ -67,7 +67,7 @@ func TestMatcherValidate(t *testing.T) {
 				Value: "",
 			},
 			legacyErr: "invalid value",
-			utf8Err: "invalid value",
+			utf8Err:   "invalid value",
 		},
 		{
 			matcher: &Matcher{
@@ -75,7 +75,7 @@ func TestMatcherValidate(t *testing.T) {
 				Value: "",
 			},
 			legacyErr: "invalid name",
-			utf8Err: "invalid name",
+			utf8Err:   "invalid name",
 		},
 	}
 
