@@ -80,8 +80,10 @@ func TestMatcherValidate(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		legacyErr := c.matcher.Validate(false)
-		utf8Err := c.matcher.Validate(true)
+		NameValidationScheme = LegacyValidation
+		legacyErr := c.matcher.Validate()
+		NameValidationScheme = UTF8Validation
+		utf8Err := c.matcher.Validate()
 		if legacyErr == nil && utf8Err == nil {
 			if c.legacyErr == "" && c.utf8Err == "" {
 				continue
@@ -246,6 +248,7 @@ func TestSilenceValidate(t *testing.T) {
 	}
 
 	for i, c := range cases {
+		NameValidationScheme = LegacyValidation
 		err := c.sil.Validate()
 		if err == nil {
 			if c.err == "" {

@@ -92,7 +92,7 @@ func MetricFamilyToOpenMetrics(out io.Writer, in *dto.MetricFamily) (written int
 	}
 	// If the name does not satisfy the legacy validity check, we must quote it.
 	quotedName := shortName
-	if !model.IsValidMetricName(model.LabelValue(quotedName), false) {
+	if !model.IsValidLegacyMetricName(model.LabelValue(quotedName)) {
 		quotedName = fmt.Sprintf(`"%s"`, quotedName)
 	}
 
@@ -375,7 +375,7 @@ func writeOpenMetricsNameAndLabelPairs(
 	if name != "" {
 		// If the name does not pass the legacy validity check, we must put the
 		// metric name inside the braces, quoted.
-		if !model.IsValidMetricName(model.LabelValue(name), false) {
+		if !model.IsValidLegacyMetricName(model.LabelValue(name)) {
 			metricInsideBraces = true
 			err := w.WriteByte(separator)
 			written++
@@ -410,7 +410,7 @@ func writeOpenMetricsNameAndLabelPairs(
 			return written, err
 		}
 		labelName := lp.GetName()
-		if !model.IsValidMetricName(model.LabelValue(labelName), false) {
+		if !model.IsValidLegacyMetricName(model.LabelValue(labelName)) {
 			labelName = fmt.Sprintf(`"%s"`, labelName)
 		}
 		n, err := w.WriteString(labelName)

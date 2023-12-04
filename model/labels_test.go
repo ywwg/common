@@ -144,13 +144,15 @@ func TestLabelNameIsValid(t *testing.T) {
 	}
 
 	for _, s := range scenarios {
-		if s.ln.IsValid(false) != s.legacyValid {
+		NameValidationScheme = LegacyValidation
+		if s.ln.IsValid() != s.legacyValid {
 			t.Errorf("Expected %v for %q using legacy IsValid method", s.legacyValid, s.ln)
 		}
 		if LabelNameRE.MatchString(string(s.ln)) != s.legacyValid {
 			t.Errorf("Expected %v for %q using legacy regexp match", s.legacyValid, s.ln)
 		}
-		if s.ln.IsValid(true) != s.utf8Valid {
+		NameValidationScheme = UTF8Validation
+		if s.ln.IsValid() != s.utf8Valid {
 			t.Errorf("Expected %v for %q using UTF8 IsValid method", s.legacyValid, s.ln)
 		}
 	}
