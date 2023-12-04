@@ -337,14 +337,14 @@ func writeNameAndLabelPairs(
 	additionalLabelName string, additionalLabelValue float64,
 ) (int, error) {
 	var (
-		written   int
-		separator byte = '{'
-		metricInsideBraces = false
+		written            int
+		separator          byte = '{'
+		metricInsideBraces      = false
 	)
 
-	if name != "" { 
+	if name != "" {
 		// If the name does not pass the legacy validity check, we must put the
-		// metric name inside the braces. Note, it will already have been 
+		// metric name inside the braces. Note, it will already have been
 		if !model.IsValidLegacyMetricName(model.LabelValue(name)) {
 			metricInsideBraces = true
 			err := w.WriteByte(separator)
