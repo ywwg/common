@@ -202,7 +202,7 @@ gauge_name{name_1="Björn",name_2="佖佥"} 3.14e+42
 		// 3: Gauge, utf8, some escaping required, +Inf as value, multi-byte characters in label values.
 		{
 			in: &dto.MetricFamily{
-				Name: proto.String("gauge.name"),
+				Name: proto.String("gauge.name\""),
 				Help: proto.String("gauge\ndoc\nstr\"ing"),
 				Type: dto.MetricType_GAUGE.Enum(),
 				Metric: []*dto.Metric{
@@ -238,10 +238,10 @@ gauge_name{name_1="Björn",name_2="佖佥"} 3.14e+42
 					},
 				},
 			},
-			out: `# HELP "gauge.name" gauge\ndoc\nstr\"ing
-# TYPE "gauge.name" gauge
-{"gauge.name","name.1"="val with\nnew line","name*2"="val with \\backslash and \"quotes\""} +Inf
-{"gauge.name","name.1"="Björn","name*2"="佖佥"} 3.14e+42
+			out: `# HELP "gauge.name\"" gauge\ndoc\nstr\"ing
+# TYPE "gauge.name\"" gauge
+{"gauge.name\"","name.1"="val with\nnew line","name*2"="val with \\backslash and \"quotes\""} +Inf
+{"gauge.name\"","name.1"="Björn","name*2"="佖佥"} 3.14e+42
 `,
 		},
 		// 4: Unknown, no help, one sample with no labels and -Inf as value, another sample with one label.
