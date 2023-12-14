@@ -116,8 +116,7 @@ func IsValidMetricName(n LabelValue) bool {
 }
 
 // IsValidLegacyMetricName is similar to IsValidMetricName but always uses the
-// legacy validation scheme regardless of the value of NameValidationScheme. It
-// returns true iff name matches the pattern of MetricNameRE for legacy names.
+// legacy validation scheme regardless of the value of NameValidationScheme.
 // This function, however, does not use MetricNameRE for the check but a much
 // faster hardcoded implementation.
 func IsValidLegacyMetricName(n LabelValue) bool {
