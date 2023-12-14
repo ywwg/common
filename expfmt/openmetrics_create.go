@@ -102,11 +102,6 @@ func MetricFamilyToOpenMetrics(out io.Writer, in *dto.MetricFamily) (written int
 	if metricType == dto.MetricType_COUNTER && strings.HasSuffix(shortName, "_total") {
 		shortName = name[:len(name)-6]
 	}
-	// If the name does not satisfy the legacy validity check, we must quote it.
-	quotedName := shortName
-	if !model.IsValidLegacyMetricName(model.LabelValue(quotedName)) {
-		quotedName = strconv.Quote(quotedName)
-	}
 
 	// Comments, first HELP, then TYPE.
 	if in.Help != nil {
