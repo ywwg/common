@@ -389,7 +389,7 @@ func TestProtoDecoder(t *testing.T) {
 					},
 				}
 				err = dec.Decode(&smpls)
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 				if err != nil {
