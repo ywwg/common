@@ -97,10 +97,10 @@ var LabelNameRE = regexp.MustCompile("^[a-zA-Z_][a-zA-Z0-9_]*$")
 // therewith.
 type LabelName string
 
-// IsValid returns true iff name matches the pattern of LabelNameRE
-// for legacy names, and iff it's valid UTF-8 if isUtf8 is true.
-// This function, however, does not use LabelNameRE for the check but a much
-// faster hardcoded implementation.
+// IsValid returns true iff name matches the pattern of LabelNameRE for legacy
+// names, and iff it's valid UTF-8 if NameValidationScheme is set to
+// UTF8Validation. For the legacy matching, it does not use LabelNameRE for the
+// check but a much faster hardcoded implementation.
 func (ln LabelName) IsValid() bool {
 	if len(ln) == 0 {
 		return false

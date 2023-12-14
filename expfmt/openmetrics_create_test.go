@@ -82,7 +82,7 @@ name{labelname="val1",basename="basevalue"} 42.0
 name{labelname="val2",basename="basevalue"} 0.23 1.23456789e+06
 `,
 		},
-		// 0.5: Dots in name
+		// 1: Dots in name
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("name.with.dots"),
@@ -128,7 +128,7 @@ name{labelname="val2",basename="basevalue"} 0.23 1.23456789e+06
 {"name.with.dots",labelname="val2",basename="basevalue"} 0.23 1.23456789e+06
 `,
 		},
-		// 1: Dots in name, no labels
+		// 2: Dots in name, no labels
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("name.with.dots"),
@@ -154,7 +154,7 @@ name{labelname="val2",basename="basevalue"} 0.23 1.23456789e+06
 {"name.with.dots"} 0.23 1.23456789e+06
 `,
 		},
-		// 2: Gauge, some escaping required, +Inf as value, multi-byte characters in label values.
+		// 3: Gauge, some escaping required, +Inf as value, multi-byte characters in label values.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("gauge_name"),
@@ -199,7 +199,7 @@ gauge_name{name_1="val with\nnew line",name_2="val with \\backslash and \"quotes
 gauge_name{name_1="Björn",name_2="佖佥"} 3.14e+42
 `,
 		},
-		// 3: Gauge, utf8, some escaping required, +Inf as value, multi-byte characters in label values.
+		// 4: Gauge, utf8, some escaping required, +Inf as value, multi-byte characters in label values.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("gauge.name\""),
@@ -244,7 +244,7 @@ gauge_name{name_1="Björn",name_2="佖佥"} 3.14e+42
 {"gauge.name\"","name.1"="Björn","name*2"="佖佥"} 3.14e+42
 `,
 		},
-		// 4: Unknown, no help, one sample with no labels and -Inf as value, another sample with one label.
+		// 5: Unknown, no help, one sample with no labels and -Inf as value, another sample with one label.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("unknown_name"),
@@ -273,7 +273,7 @@ unknown_name -Inf
 unknown_name{name_1="value 1"} -1.23e-45
 `,
 		},
-		// 5: Summary.
+		// 6: Summary.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("summary_name"),
@@ -346,7 +346,7 @@ summary_name_sum{name_1="value 1",name_2="value 2"} 2010.1971
 summary_name_count{name_1="value 1",name_2="value 2"} 4711
 `,
 		},
-		// 6: Histogram
+		// 7: Histogram
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("request_duration_microseconds"),
@@ -394,7 +394,7 @@ request_duration_microseconds_sum 1.7560473e+06
 request_duration_microseconds_count 2693
 `,
 		},
-		// 7: Histogram with missing +Inf bucket.
+		// 8: Histogram with missing +Inf bucket.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("request_duration_microseconds"),
@@ -438,7 +438,7 @@ request_duration_microseconds_sum 1.7560473e+06
 request_duration_microseconds_count 2693
 `,
 		},
-		// 8: Histogram with missing +Inf bucket but with different exemplars.
+		// 9: Histogram with missing +Inf bucket but with different exemplars.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("request_duration_microseconds"),
@@ -505,7 +505,7 @@ request_duration_microseconds_sum 1.7560473e+06
 request_duration_microseconds_count 2693
 `,
 		},
-		// 9: Simple Counter.
+		// 10: Simple Counter.
 		{
 			in: &dto.MetricFamily{
 				Name: proto.String("foos_total"),
@@ -524,7 +524,7 @@ request_duration_microseconds_count 2693
 foos_total 42.0
 `,
 		},
-		// 10: No metric.
+		// 11: No metric.
 		{
 			in: &dto.MetricFamily{
 				Name:   proto.String("name_total"),

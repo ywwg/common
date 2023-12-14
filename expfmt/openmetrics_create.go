@@ -353,8 +353,8 @@ func writeOpenMetricsSample(
 	return written, nil
 }
 
-// writeOpenMetricsNameAndLabelPairs works like writeOpenMetrics but formats the float
-// in OpenMetrics style.
+// writeOpenMetricsNameAndLabelPairs works like writeOpenMetricsSample but
+// formats the float in OpenMetrics style.
 func writeOpenMetricsNameAndLabelPairs(
 	w enhancedWriter,
 	name string,

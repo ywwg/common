@@ -24,8 +24,8 @@ import (
 type validationSchemeId int
 
 const (
-	LegacyValidation = validationSchemeId(0)
-	UTF8Validation   = validationSchemeId(1)
+	LegacyValidation validationSchemeId = iota
+	UTF8Validation
 )
 
 var (
