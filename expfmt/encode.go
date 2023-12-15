@@ -64,6 +64,17 @@ func Negotiate(h http.Header) Format {
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
 		ver := ac.Params["version"]
 		if ac.Type+"/"+ac.SubType == ProtoType && ac.Params["proto"] == ProtoProtocol {
+			if ac.Params["validation-scheme"] == UTF8Valid {
+				switch ac.Params["encoding"] {
+				case "delimited":
+					return FmtProtoDelimUTF8
+				case "text":
+					return FmtProtoTextUTF8
+				case "compact-text":
+					return FmtProtoCompactUTF8
+				}
+			}
+
 			switch ac.Params["encoding"] {
 			case "delimited":
 				return FmtProtoDelim
@@ -73,11 +84,17 @@ func Negotiate(h http.Header) Format {
 				return FmtProtoCompact
 			}
 		}
-		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion || ver == "") {
-			return FmtText
+		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_0_0_4 || ver == TextVersion_1_0_0 || ver == "") {
+			if ver == TextVersion_1_0_0 {
+				if ac.Params["validation-scheme"] == UTF8Valid {
+					return FmtText_1_0_0_UTF8
+				}
+				return FmtText_1_0_0
+			}
+			return FmtText_0_0_4
 		}
 	}
-	return FmtText
+	return FmtText_0_0_4
 }
 
 // NegotiateIncludingOpenMetrics works like Negotiate but includes
@@ -88,6 +105,17 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
 		ver := ac.Params["version"]
 		if ac.Type+"/"+ac.SubType == ProtoType && ac.Params["proto"] == ProtoProtocol {
+			if ac.Params["validation-scheme"] == UTF8Valid {
+				switch ac.Params["encoding"] {
+				case "delimited":
+					return FmtProtoDelimUTF8
+				case "text":
+					return FmtProtoTextUTF8
+				case "compact-text":
+					return FmtProtoCompactUTF8
+				}
+			}
+
 			switch ac.Params["encoding"] {
 			case "delimited":
 				return FmtProtoDelim
@@ -97,17 +125,30 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 				return FmtProtoCompact
 			}
 		}
-		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion || ver == "") {
-			return FmtText
-		}
-		if ac.Type+"/"+ac.SubType == OpenMetricsType && (ver == OpenMetricsVersion_0_0_1 || ver == OpenMetricsVersion_1_0_0 || ver == "") {
-			if ver == OpenMetricsVersion_1_0_0 {
-				return FmtOpenMetrics_1_0_0
+		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_1_0_0 || ver == "") {
+			if ac.Params["validation-scheme"] == UTF8Valid {
+				return FmtText_1_0_0
 			}
-			return FmtOpenMetrics_0_0_1
+			return FmtText_0_0_4
+		}
+		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_0_0_4 || ver == "") {
+			return FmtText_0_0_4
+		}
+		if ac.Type+"/"+ac.SubType == OpenMetricsType && (ver == OpenMetricsVersion_0_0_1 || ver == OpenMetricsVersion_1_0_0 || ver == OpenMetricsVersion_2_0_0 || ver == "") {
+			switch ver {
+				case OpenMetricsVersion_2_0_0:
+					if ac.Params["validation-scheme"] == UTF8Valid {
+						return FmtOpenMetrics_2_0_0_UTF8
+					}
+					return FmtOpenMetrics_2_0_0
+				case OpenMetricsVersion_1_0_0:
+					return FmtOpenMetrics_1_0_0
+				default:
+					return FmtOpenMetrics_0_0_1
+			}
 		}
 	}
-	return FmtText
+	return FmtText_0_0_4
 }
 
 // NewEncoder returns a new encoder based on content type negotiation. All
@@ -142,7 +183,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 			},
 			close: func() error { return nil },
 		}
-	case FmtText:
+	case FmtText_0_0_4:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
 				_, err := MetricFamilyToText(w, v)

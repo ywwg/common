@@ -13,7 +13,9 @@
 
 package model
 
-import "testing"
+import (
+	"testing"
+)
 
 func testMetric(t testing.TB) {
 	scenarios := []struct {
@@ -218,7 +220,70 @@ func TestMetricToString(t *testing.T) {
 		t.Run(scenario.name, func(t *testing.T) {
 			actual := scenario.input.String()
 			if actual != scenario.expected {
-				t.Errorf("expected string output %s but got %s", actual, scenario.expected)
+				t.Errorf("expected string output %s but got %s", scenario.expected, actual)
+			}
+		})
+	}
+}
+
+func TestEscapeName(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		input    string
+		expectedUnderscores string
+		expectedDots string
+		expectedValue string
+	} {
+		{
+			name: "empty string",
+		},
+		{
+			name: "legacy valid name",
+			input: "no:escaping_required",
+			expectedUnderscores: "no:escaping_required",
+			// Dots escaping will escape underscores even though it's not strictly
+			// necessary for compatibility.
+			expectedDots: "no:escaping__required",
+			expectedValue: "no:escaping_required",
+		},
+		{
+			name: "name with dots",
+			input: "mysystem.prod.west.cpu.load",
+			expectedUnderscores: "mysystem_prod_west_cpu_load",
+			expectedDots: "mysystem_dot_prod_dot_west_dot_cpu_dot_load",
+			expectedValue: "U__mysystem_2e_prod_2e_west_2e_cpu_2e_load",
+		},
+		{
+			name: "name with dots and colon",
+			input: "http.status:sum",
+			expectedUnderscores: "http_status:sum",
+			expectedDots: "http_dot_status:sum",
+			expectedValue: "U__http_2e_status:sum",
+		},
+		{
+			name: "name with unicode characters > 0x100",
+			input: "花火",
+			expectedUnderscores: "__",
+			expectedDots: "__",
+			expectedValue: "U___82b1__706b_",
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			got := EscapeName(scenario.input, UnderscoreEscaping)
+			if got != scenario.expectedUnderscores {
+				t.Errorf("expected string output %s but got %s", scenario.expectedUnderscores, got)
+			}
+
+			got = EscapeName(scenario.input, DotsEscaping)
+			if got != scenario.expectedDots {
+				t.Errorf("expected string output %s but got %s", scenario.expectedDots, got)
+			}
+
+			got = EscapeName(scenario.input, ValueEncodingEscaping)
+			if got != scenario.expectedValue {
+				t.Errorf("expected string output %s but got %s", scenario.expectedValue, got)
 			}
 		})
 	}

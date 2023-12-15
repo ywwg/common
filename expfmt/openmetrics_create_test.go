@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/model"
 )
 
 func TestCreateOpenMetrics(t *testing.T) {
@@ -31,6 +32,12 @@ func TestCreateOpenMetrics(t *testing.T) {
 	if err := openMetricsTimestamp.CheckValid(); err != nil {
 		t.Error(err)
 	}
+
+	oldDefaultScheme := model.DefaultNameEscapingScheme
+	model.DefaultNameEscapingScheme = model.NoEscaping
+	defer func() {
+		model.DefaultNameEscapingScheme = oldDefaultScheme
+	}()
 
 	scenarios := []struct {
 		in  *dto.MetricFamily

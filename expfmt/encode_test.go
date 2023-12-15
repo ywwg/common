@@ -32,32 +32,62 @@ func TestNegotiate(t *testing.T) {
 		{
 			name:              "delimited format",
 			acceptHeaderValue: acceptValuePrefix + ";encoding=delimited",
-			expectedFmt:       string(FmtProtoDelim),
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited",
 		},
 		{
 			name:              "text format",
 			acceptHeaderValue: acceptValuePrefix + ";encoding=text",
-			expectedFmt:       string(FmtProtoText),
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=text",
 		},
 		{
 			name:              "compact text format",
 			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text",
-			expectedFmt:       string(FmtProtoCompact),
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=compact-text",
 		},
 		{
 			name:              "plain text format",
 			acceptHeaderValue: "text/plain;version=0.0.4",
-			expectedFmt:       string(FmtText),
+			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8",
+		},
+		{
+			name:              "delimited format utf8",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=delimited; validation-scheme=utf8;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited; validchars=utf8",
+		},
+		{
+			name:              "text format utf8",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=text; validation-scheme=utf8;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=text; validchars=utf8",
+		},
+		{
+			name:              "compact text format utf8",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text; validation-scheme=utf8;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=compact-text; validchars=utf8",
+		},
+		{
+			name:              "plain text format 0.0.4 with utf8 not valid, falls back",
+			acceptHeaderValue: "text/plain;version=0.0.4;validation-scheme=utf8;",
+			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8",
+		},
+		{
+			name:              "plain text format 1.0.0",
+			acceptHeaderValue: "text/plain;version=1.0.0;",
+			expectedFmt:       "text/plain; version=1.0.0; charset=utf-8",
+		},
+		{
+			name:              "plain text format 1.0.0 with utf8",
+			acceptHeaderValue: "text/plain;version=1.0.0; validation-scheme=utf8;",
+			expectedFmt:       "text/plain; version=1.0.0; charset=utf-8; validchars=utf8",
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			h := http.Header{}
 			h.Add(hdrAccept, test.acceptHeaderValue)
 			actualFmt := string(Negotiate(h))
 			if actualFmt != test.expectedFmt {
-				t.Errorf("expected Negotiate to return format %s, but got %s instead", test.expectedFmt, actualFmt)
+				t.Errorf("case %d: expected Negotiate to return format %s, but got %s instead", i, test.expectedFmt, actualFmt)
 			}
 		})
 	}
@@ -72,32 +102,52 @@ func TestNegotiateOpenMetrics(t *testing.T) {
 		{
 			name:              "OM format, no version",
 			acceptHeaderValue: "application/openmetrics-text",
-			expectedFmt:       string(FmtOpenMetrics_0_0_1),
+			expectedFmt:       "application/openmetrics-text; version=0.0.1; charset=utf-8",
 		},
 		{
 			name:              "OM format, 0.0.1 version",
 			acceptHeaderValue: "application/openmetrics-text;version=0.0.1",
-			expectedFmt:       string(FmtOpenMetrics_0_0_1),
+			expectedFmt:       "application/openmetrics-text; version=0.0.1; charset=utf-8",
 		},
 		{
 			name:              "OM format, 1.0.0 version",
 			acceptHeaderValue: "application/openmetrics-text;version=1.0.0",
-			expectedFmt:       string(FmtOpenMetrics_1_0_0),
+			expectedFmt:       "application/openmetrics-text; version=1.0.0; charset=utf-8",
+		},
+		{
+			name:              "OM format, 2.0.0 version, legacy",
+			acceptHeaderValue: "application/openmetrics-text;version=2.0.0",
+			expectedFmt:       "application/openmetrics-text; version=2.0.0; charset=utf-8",
+		},
+		{
+			name:              "OM format, 2.0.0 version, utf8",
+			acceptHeaderValue: "application/openmetrics-text;version=2.0.0;validation-scheme=utf8;",
+			expectedFmt:       "application/openmetrics-text; version=2.0.0; charset=utf-8; validchars=utf8",
+		},
+		{
+			name:              "OM format, 0.0.1 version with utf8 is not valid, falls back",
+			acceptHeaderValue: "application/openmetrics-text;version=0.0.1;validation-scheme=utf8;",
+			expectedFmt:       "application/openmetrics-text; version=0.0.1; charset=utf-8",
+		},
+		{
+			name:              "OM format, 1.0.0 version with utf8 is not valid, falls back",
+			acceptHeaderValue: "application/openmetrics-text;version=1.0.0;validation-scheme=utf8;",
+			expectedFmt:       "application/openmetrics-text; version=1.0.0; charset=utf-8",
 		},
 		{
 			name:              "OM format, invalid version",
 			acceptHeaderValue: "application/openmetrics-text;version=0.0.4",
-			expectedFmt:       string(FmtText),
+			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8",
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			h := http.Header{}
 			h.Add(hdrAccept, test.acceptHeaderValue)
 			actualFmt := string(NegotiateIncludingOpenMetrics(h))
 			if actualFmt != test.expectedFmt {
-				t.Errorf("expected Negotiate to return format %s, but got %s instead", test.expectedFmt, actualFmt)
+				t.Errorf("case %d: expected Negotiate to return format %s, but got %s instead", i, test.expectedFmt, actualFmt)
 			}
 		})
 	}
@@ -156,7 +206,7 @@ func TestEncode(t *testing.T) {
 
 	buff.Reset()
 
-	textEncoder := NewEncoder(&buff, FmtText)
+	textEncoder := NewEncoder(&buff, FmtText_0_0_4)
 	err = textEncoder.Encode(metric)
 	if err != nil {
 		t.Errorf("unexpected error during encode: %s", err.Error())

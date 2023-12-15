@@ -25,22 +25,33 @@ type Format string
 // it on the wire, new content-type strings will have to be agreed upon and
 // added here.
 const (
-	TextVersion              = "0.0.4"
+	TextVersion_1_0_0        = "1.0.0"
+	TextVersion_0_0_4        = "0.0.4"
 	ProtoType                = `application/vnd.google.protobuf`
 	ProtoProtocol            = `io.prometheus.client.MetricFamily`
 	ProtoFmt                 = ProtoType + "; proto=" + ProtoProtocol + ";"
+	UTF8Valid                = "utf8"
 	OpenMetricsType          = `application/openmetrics-text`
-	OpenMetricsVersion_0_0_1 = "0.0.1"
+	OpenMetricsVersion_2_0_0 = "2.0.0"
 	OpenMetricsVersion_1_0_0 = "1.0.0"
+	OpenMetricsVersion_0_0_1 = "0.0.1"
 
 	// The Content-Type values for the different wire protocols.
-	FmtUnknown           Format = `<unknown>`
-	FmtText              Format = `text/plain; version=` + TextVersion + `; charset=utf-8`
-	FmtProtoDelim        Format = ProtoFmt + ` encoding=delimited`
-	FmtProtoText         Format = ProtoFmt + ` encoding=text`
-	FmtProtoCompact      Format = ProtoFmt + ` encoding=compact-text`
-	FmtOpenMetrics_1_0_0 Format = OpenMetricsType + `; version=` + OpenMetricsVersion_1_0_0 + `; charset=utf-8`
-	FmtOpenMetrics_0_0_1 Format = OpenMetricsType + `; version=` + OpenMetricsVersion_0_0_1 + `; charset=utf-8`
+	FmtUnknown                Format = `<unknown>`
+	FmtUTF8Param              Format = `; validchars=utf8`
+	FmtText_0_0_4             Format = `text/plain; version=` + TextVersion_0_0_4 + `; charset=utf-8`
+	FmtText_1_0_0             Format = `text/plain; version=` + TextVersion_1_0_0 + `; charset=utf-8`
+	FmtText_1_0_0_UTF8        Format = FmtText_1_0_0 + FmtUTF8Param
+	FmtProtoDelim             Format = ProtoFmt + ` encoding=delimited`
+	FmtProtoText              Format = ProtoFmt + ` encoding=text`
+	FmtProtoCompact           Format = ProtoFmt + ` encoding=compact-text`
+	FmtProtoDelimUTF8         Format = FmtProtoDelim + FmtUTF8Param
+	FmtProtoTextUTF8          Format = FmtProtoText + FmtUTF8Param
+	FmtProtoCompactUTF8       Format = FmtProtoCompact + FmtUTF8Param
+	FmtOpenMetrics_0_0_1      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_0_0_1 + `; charset=utf-8`
+	FmtOpenMetrics_1_0_0      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_1_0_0 + `; charset=utf-8`
+	FmtOpenMetrics_2_0_0      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_2_0_0 + `; charset=utf-8`
+	FmtOpenMetrics_2_0_0_UTF8 Format = FmtOpenMetrics_2_0_0 + FmtUTF8Param
 )
 
 const (

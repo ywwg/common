@@ -76,6 +76,10 @@ var (
 //
 // This method fulfills the type 'prometheus.encoder'.
 func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err error) {
+	return MetricFamilyToTextWithEscaping(out, in, model.DefaultNameEscapingScheme)
+}
+
+func MetricFamilyToTextWithEscaping(out io.Writer, in *dto.MetricFamily, scheme model.EscapingScheme) (written int, err error) {
 	// Fail-fast checks.
 	if len(in.Metric) == 0 {
 		return 0, fmt.Errorf("MetricFamily has no metrics: %s", in)
@@ -84,6 +88,7 @@ func MetricFamilyToText(out io.Writer, in *dto.MetricFamily) (written int, err e
 	if name == "" {
 		return 0, fmt.Errorf("MetricFamily has no name: %s", in)
 	}
+	name = model.EscapeName(name, scheme)
 
 	// Try the interface upgrade. If it doesn't work, we'll use a
 	// bufio.Writer from the sync.Pool.
@@ -522,6 +527,7 @@ func writeName(w enhancedWriter, name string) (int, error) {
 // writeName writes a string as-is if it complies with the legacy naming
 // scheme, or escapes it in double quotes if not.
 func writeName(w enhancedWriter, name string) (int, error) {
+	name = model.EscapeName(name, model.DefaultNameEscapingScheme)
 	if !model.IsValidLegacyMetricName(model.LabelValue(name)) {
 		var written int
 		var err error

@@ -22,9 +22,16 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/model"
 )
 
 func TestCreate(t *testing.T) {
+	oldDefaultScheme := model.DefaultNameEscapingScheme
+	model.DefaultNameEscapingScheme = model.NoEscaping
+	defer func() {
+		model.DefaultNameEscapingScheme = oldDefaultScheme
+	}()
+	
 	scenarios := []struct {
 		in  *dto.MetricFamily
 		out string

@@ -36,6 +36,25 @@ const (
 	UTF8Validation
 )
 
+type EscapingScheme int
+
+const (
+	// NoEscaping indicates that a name will not be escaped.
+	NoEscaping EscapingScheme = iota
+
+	// UnderscoreEscaping replaces all legacy-invalid characters with underscores.
+	UnderscoreEscaping
+
+	// DotsEscaping is similar to UnderscoreEscaping, except that dots are
+	// converted to `_dot_` and pre-existing underscores are converted to `__`.
+	DotsEscaping
+
+	// ValueEncodingEscaping prepends the name with `U__` and replaces all invalid
+	// characters with the unicode value, surrounded by underscores. Single
+	// underscores are replaced with double underscores.
+	ValueEncodingEscaping
+)
+
 var (
 	// NameValidationScheme determines the method of name validation to be used by
 	// all calls to IsValidMetricName() and LabelName IsValid(). Setting UTF8 mode
@@ -54,6 +73,10 @@ var (
 	// used. To avoid need for locking, this value should be set once, probably in
 	// an init(), before multiple goroutines are started.
 	NameValidationScheme = LegacyValidation
+
+	// DefaultNameEscapingScheme defines the default way that names will be
+	// escaped when presented to systems that do not support UTF-8 names.
+	DefaultNameEscapingScheme = UnderscoreEscaping
 )
 
 // A Metric is similar to a LabelSet, but the key difference is that a Metric is
@@ -141,9 +164,85 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 		return false
 	}
 	for i, b := range n {
-		if !((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == ':' || (b >= '0' && b <= '9' && i > 0)) {
+		if !isLegacyValidRune(b, i) {
 			return false
 		}
 	}
 	return true
+}
+
+const (
+	lowerhex = "0123456789abcdef"
+)
+
+// EscapeName escapes the incoming name according to the provided escaping
+// scheme. Depending on the rules of escaping, this may cause no change in the
+// string that is returned. (Especially NoEscaping, which by definition is a noop).
+// This function does not do any validation of the name.
+func EscapeName(name string, scheme EscapingScheme) string {
+	if len(name) == 0 {
+		return name
+	}
+	var escaped strings.Builder
+	switch scheme {
+	case NoEscaping:
+			return name
+	case UnderscoreEscaping:
+		if IsValidLegacyMetricName(LabelValue(name)) {
+			return name
+		}
+		for i, b := range name {
+			if isLegacyValidRune(b, i){
+				escaped.WriteRune(b)
+			} else {
+				escaped.WriteRune('_')
+			}
+		}
+		return escaped.String()
+	case DotsEscaping:
+		// Do not early return for legacy valid names, we still escape underscores.
+		for i, b := range name {
+			if b == '_' {
+				escaped.WriteString("__")
+			} else if b == '.' {
+				escaped.WriteString("_dot_")
+			} else if isLegacyValidRune(b, i){
+				escaped.WriteRune(b)
+			} else {
+				escaped.WriteRune('_')
+			}
+		}
+		return escaped.String()
+	case ValueEncodingEscaping:
+		if IsValidLegacyMetricName(LabelValue(name)) {
+			return name
+		}
+		escaped.WriteString("U__")
+		for i, b := range name {
+			if isLegacyValidRune(b, i){
+				escaped.WriteRune(b)
+			} else if !utf8.ValidRune(b) {
+				escaped.WriteString("_FFFD_")
+			} else if b < 0x100 {
+				escaped.WriteRune('_')
+				for s := 4; s >= 0; s -= 4 {
+					escaped.WriteByte(lowerhex[b>>uint(s)&0xF])
+				}
+				escaped.WriteRune('_')
+			} else if b < 0x10000 {
+				escaped.WriteRune('_')
+				for s := 12; s >= 0; s -= 4 {
+					escaped.WriteByte(lowerhex[b>>uint(s)&0xF])
+				}
+				escaped.WriteRune('_')
+			}
+		}
+		return escaped.String()
+	default:
+		panic(fmt.Sprintf("invalid escaping scheme %d", scheme))
+	}
+}
+
+func isLegacyValidRune(b rune, i int) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == ':' || (b >= '0' && b <= '9' && i > 0)
 }
