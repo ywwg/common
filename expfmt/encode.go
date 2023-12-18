@@ -19,6 +19,7 @@ import (
 	"net/http"
 
 	"google.golang.org/protobuf/encoding/protodelim"
+	"github.com/prometheus/common/model"
 	"google.golang.org/protobuf/encoding/prototext"
 
 	"github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg"
@@ -61,40 +62,49 @@ func (ec encoderCloser) Close() error {
 // as the support is still experimental. To include the option to negotiate
 // FmtOpenMetrics, use NegotiateOpenMetrics.
 func Negotiate(h http.Header) Format {
+	escapingScheme := Format(fmt.Sprintf("; escaping=%s", EscapingSchemeToFormat(model.DefaultNameEscapingScheme)))
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
+		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
+			switch Format(escapeParam) {
+				case FmtEscapeNone, FmtEscapeUnderscores, FmtEscapeDots, FmtEscapeValues:
+					escapingScheme = Format(fmt.Sprintf("; escaping=%s", escapeParam))
+				default:
+				// If the escaping parameter is unknown, ignore it.
+			}
+		}
 		ver := ac.Params["version"]
 		if ac.Type+"/"+ac.SubType == ProtoType && ac.Params["proto"] == ProtoProtocol {
 			if ac.Params["validation-scheme"] == UTF8Valid {
 				switch ac.Params["encoding"] {
 				case "delimited":
-					return FmtProtoDelimUTF8
+					return FmtProtoDelim + FmtUTF8Param
 				case "text":
-					return FmtProtoTextUTF8
+					return FmtProtoText + FmtUTF8Param
 				case "compact-text":
-					return FmtProtoCompactUTF8
+					return FmtProtoCompact + FmtUTF8Param
 				}
 			}
 
 			switch ac.Params["encoding"] {
 			case "delimited":
-				return FmtProtoDelim
+				return FmtProtoDelim + escapingScheme
 			case "text":
-				return FmtProtoText
+				return FmtProtoText + escapingScheme
 			case "compact-text":
-				return FmtProtoCompact
+				return FmtProtoCompact + escapingScheme
 			}
 		}
 		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_0_0_4 || ver == TextVersion_1_0_0 || ver == "") {
 			if ver == TextVersion_1_0_0 {
 				if ac.Params["validation-scheme"] == UTF8Valid {
-					return FmtText_1_0_0_UTF8
+					return FmtText_1_0_0 + FmtUTF8Param
 				}
-				return FmtText_1_0_0
+				return FmtText_1_0_0 + escapingScheme
 			}
-			return FmtText_0_0_4
+			return FmtText_0_0_4 + escapingScheme
 		}
 	}
-	return FmtText_0_0_4
+	return FmtText_0_0_4 + escapingScheme
 }
 
 // NegotiateIncludingOpenMetrics works like Negotiate but includes
@@ -102,53 +112,62 @@ func Negotiate(h http.Header) Format {
 // temporary and will disappear once FmtOpenMetrics is fully supported and as
 // such may be negotiated by the normal Negotiate function.
 func NegotiateIncludingOpenMetrics(h http.Header) Format {
+	escapingScheme := Format(fmt.Sprintf("; escaping=%s", EscapingSchemeToFormat(model.DefaultNameEscapingScheme)))
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
+		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
+			switch Format(escapeParam) {
+				case FmtEscapeNone, FmtEscapeUnderscores, FmtEscapeDots, FmtEscapeValues:
+					escapingScheme = Format(fmt.Sprintf("; escaping=%s", escapeParam))
+				default:
+				// If the escaping parameter is unknown, ignore it.
+			}
+		}
 		ver := ac.Params["version"]
 		if ac.Type+"/"+ac.SubType == ProtoType && ac.Params["proto"] == ProtoProtocol {
 			if ac.Params["validation-scheme"] == UTF8Valid {
 				switch ac.Params["encoding"] {
 				case "delimited":
-					return FmtProtoDelimUTF8
+					return FmtProtoDelim + FmtUTF8Param
 				case "text":
-					return FmtProtoTextUTF8
+					return FmtProtoText + FmtUTF8Param
 				case "compact-text":
-					return FmtProtoCompactUTF8
+					return FmtProtoCompact + FmtUTF8Param
 				}
 			}
 
 			switch ac.Params["encoding"] {
 			case "delimited":
-				return FmtProtoDelim
+				return FmtProtoDelim + escapingScheme
 			case "text":
-				return FmtProtoText
+				return FmtProtoText + escapingScheme
 			case "compact-text":
-				return FmtProtoCompact
+				return FmtProtoCompact + escapingScheme
 			}
 		}
 		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_1_0_0 || ver == "") {
 			if ac.Params["validation-scheme"] == UTF8Valid {
-				return FmtText_1_0_0
+				return FmtText_1_0_0 + escapingScheme
 			}
-			return FmtText_0_0_4
+			return FmtText_0_0_4 + escapingScheme
 		}
 		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_0_0_4 || ver == "") {
-			return FmtText_0_0_4
+			return FmtText_0_0_4 + escapingScheme
 		}
 		if ac.Type+"/"+ac.SubType == OpenMetricsType && (ver == OpenMetricsVersion_0_0_1 || ver == OpenMetricsVersion_1_0_0 || ver == OpenMetricsVersion_2_0_0 || ver == "") {
 			switch ver {
 				case OpenMetricsVersion_2_0_0:
 					if ac.Params["validation-scheme"] == UTF8Valid {
-						return FmtOpenMetrics_2_0_0_UTF8
+						return FmtOpenMetrics_2_0_0 + FmtUTF8Param
 					}
-					return FmtOpenMetrics_2_0_0
+					return FmtOpenMetrics_2_0_0 + escapingScheme
 				case OpenMetricsVersion_1_0_0:
-					return FmtOpenMetrics_1_0_0
+					return FmtOpenMetrics_1_0_0 + escapingScheme
 				default:
-					return FmtOpenMetrics_0_0_1
+					return FmtOpenMetrics_0_0_1 + escapingScheme
 			}
 		}
 	}
-	return FmtText_0_0_4
+	return FmtText_0_0_4 + Format(fmt.Sprintf("; escaping=%s", FmtEscapeValues))
 }
 
 // NewEncoder returns a new encoder based on content type negotiation. All
@@ -158,10 +177,12 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 // to the Encoder interface directly. The current version of the Encoder
 // interface is kept for backwards compatibility.
 func NewEncoder(w io.Writer, format Format) Encoder {
+	escapingScheme := FormatToEscapingScheme(format)
 	switch format {
 	case FmtProtoDelim:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
+				model.EscapeMetricFamily(v, escapingScheme)
 				_, err := protodelim.MarshalTo(w, v)
 				return err
 			},
@@ -170,6 +191,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case FmtProtoCompact:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
+				model.EscapeMetricFamily(v, escapingScheme)
 				_, err := fmt.Fprintln(w, v.String())
 				return err
 			},
@@ -178,6 +200,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case FmtProtoText:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
+				model.EscapeMetricFamily(v, escapingScheme)
 				_, err := fmt.Fprintln(w, prototext.Format(v))
 				return err
 			},
@@ -186,6 +209,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case FmtText_0_0_4:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
+				model.EscapeMetricFamily(v, escapingScheme)
 				_, err := MetricFamilyToText(w, v)
 				return err
 			},
@@ -194,6 +218,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case FmtOpenMetrics_0_0_1, FmtOpenMetrics_1_0_0:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
+				model.EscapeMetricFamily(v, escapingScheme)
 				_, err := MetricFamilyToOpenMetrics(w, v)
 				return err
 			},

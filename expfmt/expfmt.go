@@ -14,6 +14,13 @@
 // Package expfmt contains tools for reading and writing Prometheus metrics.
 package expfmt
 
+import (
+	"fmt"
+
+	"github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg"
+	"github.com/prometheus/common/model"
+)
+
 // Format specifies the HTTP content type of the different wire protocols.
 type Format string
 
@@ -38,23 +45,59 @@ const (
 
 	// The Content-Type values for the different wire protocols.
 	FmtUnknown                Format = `<unknown>`
-	FmtUTF8Param              Format = `; validchars=utf8`
 	FmtText_0_0_4             Format = `text/plain; version=` + TextVersion_0_0_4 + `; charset=utf-8`
 	FmtText_1_0_0             Format = `text/plain; version=` + TextVersion_1_0_0 + `; charset=utf-8`
-	FmtText_1_0_0_UTF8        Format = FmtText_1_0_0 + FmtUTF8Param
 	FmtProtoDelim             Format = ProtoFmt + ` encoding=delimited`
 	FmtProtoText              Format = ProtoFmt + ` encoding=text`
 	FmtProtoCompact           Format = ProtoFmt + ` encoding=compact-text`
-	FmtProtoDelimUTF8         Format = FmtProtoDelim + FmtUTF8Param
-	FmtProtoTextUTF8          Format = FmtProtoText + FmtUTF8Param
-	FmtProtoCompactUTF8       Format = FmtProtoCompact + FmtUTF8Param
 	FmtOpenMetrics_0_0_1      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_0_0_1 + `; charset=utf-8`
 	FmtOpenMetrics_1_0_0      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_1_0_0 + `; charset=utf-8`
 	FmtOpenMetrics_2_0_0      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_2_0_0 + `; charset=utf-8`
-	FmtOpenMetrics_2_0_0_UTF8 Format = FmtOpenMetrics_2_0_0 + FmtUTF8Param
+
+	// UTF8 and Escaping Formats
+	FmtUTF8Param         Format = `; validchars=utf8`
+	FmtEscapeNone        Format = "none"
+	FmtEscapeUnderscores Format = "underscores"
+	FmtEscapeDots        Format = "dots"
+	FmtEscapeValues      Format = "values"
 )
 
 const (
 	hdrContentType = "Content-Type"
 	hdrAccept      = "Accept"
 )
+
+func EscapingSchemeToFormat(s model.EscapingScheme) Format {
+	switch s {
+		case model.NoEscaping:
+			return FmtEscapeNone
+		case model.UnderscoreEscaping:
+			return FmtEscapeUnderscores
+		case model.DotsEscaping:
+			return FmtEscapeDots
+		case model.ValueEncodingEscaping:
+			return FmtEscapeValues
+		default:
+			panic(fmt.Sprintf("unknown escaping scheme %d", s))
+	}
+}
+
+func FormatToEscapingScheme(format Format) model.EscapingScheme {
+	for _, ac := range goautoneg.ParseAccept(string(format)) {
+		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
+			switch Format(escapeParam) {
+				case FmtEscapeNone:
+					return model.NoEscaping
+				case FmtEscapeUnderscores:
+					return model.UnderscoreEscaping
+				case FmtEscapeDots :
+					return model.DotsEscaping
+				case FmtEscapeValues:
+					return model.ValueEncodingEscaping
+				default:
+					panic("unknown format scheme "+escapeParam)
+			}
+		}
+	}
+	return model.NoEscaping
+}

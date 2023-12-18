@@ -19,6 +19,8 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
+
+	dto "github.com/prometheus/client_model/go"
 )
 
 // ValidationScheme is a Go enum for determining how metric and label names will
@@ -171,37 +173,65 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	return true
 }
 
+// EscapeMetricFamily escapes the given metric names and labels in place with
+// the given escaping scheme.
+func EscapeMetricFamily(v *dto.MetricFamily, scheme EscapingScheme) {
+	if scheme == NoEscaping {
+		return
+	}
+	if !IsValidLegacyMetricName(LabelValue(*v.Name)) {
+		escapeNameInPlace(v.Name, scheme)
+	}
+	for _, m := range v.Metric {
+		for _, l := range m.Label {
+			if *l.Name == MetricNameLabel {
+				escapeNameInPlace(l.Value, scheme)
+				continue
+			}
+			if !IsValidLegacyMetricName(LabelValue(*l.Name)) {
+				escapeNameInPlace(l.Name, scheme)
+			}
+		}
+	}
+}
+
 const (
 	lowerhex = "0123456789abcdef"
 )
-
 // EscapeName escapes the incoming name according to the provided escaping
 // scheme. Depending on the rules of escaping, this may cause no change in the
 // string that is returned. (Especially NoEscaping, which by definition is a noop).
 // This function does not do any validation of the name.
 func EscapeName(name string, scheme EscapingScheme) string {
-	if len(name) == 0 {
-		return name
+	escaped := name
+	escapeNameInPlace(&escaped, scheme)
+	return escaped
+}
+
+func escapeNameInPlace(name *string, scheme EscapingScheme) {
+	if len(*name) == 0 {
+		return
 	}
 	var escaped strings.Builder
 	switch scheme {
 	case NoEscaping:
-			return name
+			return
 	case UnderscoreEscaping:
-		if IsValidLegacyMetricName(LabelValue(name)) {
-			return name
+		if IsValidLegacyMetricName(LabelValue(*name)) {
+			return
 		}
-		for i, b := range name {
+		for i, b := range *name {
 			if isLegacyValidRune(b, i){
 				escaped.WriteRune(b)
 			} else {
 				escaped.WriteRune('_')
 			}
 		}
-		return escaped.String()
+		*name = escaped.String()
+		return
 	case DotsEscaping:
 		// Do not early return for legacy valid names, we still escape underscores.
-		for i, b := range name {
+		for i, b := range *name {
 			if b == '_' {
 				escaped.WriteString("__")
 			} else if b == '.' {
@@ -212,13 +242,14 @@ func EscapeName(name string, scheme EscapingScheme) string {
 				escaped.WriteRune('_')
 			}
 		}
-		return escaped.String()
+		*name = escaped.String()
+		return
 	case ValueEncodingEscaping:
-		if IsValidLegacyMetricName(LabelValue(name)) {
-			return name
+		if IsValidLegacyMetricName(LabelValue(*name)) {
+			return
 		}
 		escaped.WriteString("U__")
-		for i, b := range name {
+		for i, b := range *name {
 			if isLegacyValidRune(b, i){
 				escaped.WriteRune(b)
 			} else if !utf8.ValidRune(b) {
@@ -237,7 +268,8 @@ func EscapeName(name string, scheme EscapingScheme) string {
 				escaped.WriteRune('_')
 			}
 		}
-		return escaped.String()
+		*name = escaped.String()
+		return
 	default:
 		panic(fmt.Sprintf("invalid escaping scheme %d", scheme))
 	}
