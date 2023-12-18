@@ -73,15 +73,10 @@ import (
 //   - The value of Counters is not checked. (OpenMetrics doesn't allow counters
 //     with a `NaN` value.)
 func MetricFamilyToOpenMetrics(out io.Writer, in *dto.MetricFamily) (written int, err error) {
-	return MetricFamilyToOpenMetricsWithEscaping(out, in, model.DefaultNameEscapingScheme)
-}
-
-func MetricFamilyToOpenMetricsWithEscaping(out io.Writer, in *dto.MetricFamily, scheme model.EscapingScheme) (written int, err error) {
 	name := in.GetName()
 	if name == "" {
 		return 0, fmt.Errorf("MetricFamily has no name: %s", in)
 	}
-	name = model.EscapeName(name, scheme)
 
 	// Try the interface upgrade. If it doesn't work, we'll use a
 	// bufio.Writer from the sync.Pool.

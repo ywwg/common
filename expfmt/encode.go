@@ -178,6 +178,7 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 // interface is kept for backwards compatibility.
 func NewEncoder(w io.Writer, format Format) Encoder {
 	escapingScheme := FormatToEscapingScheme(format)
+	
 	switch format {
 	case FmtProtoDelim:
 		return encoderCloser{
