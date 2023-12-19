@@ -21,6 +21,7 @@ import (
 	"unicode/utf8"
 
 	dto "github.com/prometheus/client_model/go"
+	"google.golang.org/protobuf/proto"
 )
 
 // ValidationScheme is a Go enum for determining how metric and label names will
@@ -174,83 +175,130 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 }
 
 // EscapeMetricFamily escapes the given metric names and labels in place with
-// the given escaping scheme.
-func EscapeMetricFamily(v *dto.MetricFamily, scheme EscapingScheme) {
-	if scheme == NoEscaping {
-		return
+// the given escaping scheme. Uses the same pointers to fields when possible,
+// otherwise creates new escaped versions so as not to mutate the input.
+func EscapeMetricFamily(v *dto.MetricFamily, scheme EscapingScheme) *dto.MetricFamily {
+	if v == nil {
+		return nil
 	}
-	if !IsValidLegacyMetricName(LabelValue(*v.Name)) {
-		escapeNameInPlace(v.Name, scheme)
+
+	if scheme == NoEscaping {
+		return v
+	}
+
+	out := &dto.MetricFamily{
+		Help: v.Help,
+		Type: v.Type,
+	}
+
+	// If the name is nil, copy as-is, don't try to escape.
+	if v.Name == nil || IsValidLegacyMetricName(LabelValue(v.GetName())) {
+		out.Name = v.Name
+	} else {
+		out.Name = proto.String(EscapeName(v.GetName(), scheme))
 	}
 	for _, m := range v.Metric {
+		if !metricNeedsEscaping(m) {
+			out.Metric = append(out.Metric, m)
+			continue
+		}
+
+		escaped := &dto.Metric{
+			Gauge:       m.Gauge,
+			Counter:     m.Counter,
+			Summary:     m.Summary,
+			Untyped:     m.Untyped,
+			Histogram:   m.Histogram,
+			TimestampMs: m.TimestampMs,
+		}
+
 		for _, l := range m.Label {
-			if *l.Name == MetricNameLabel {
-				escapeNameInPlace(l.Value, scheme)
+			if l.GetName() == MetricNameLabel {
+				if l.Value == nil || IsValidLegacyMetricName(LabelValue(l.GetValue())) {
+					escaped.Label = append(escaped.Label, l)
+					continue
+				}
+				escaped.Label = append(escaped.Label, &dto.LabelPair{
+					Name:  proto.String(MetricNameLabel),
+					Value: proto.String(EscapeName(l.GetValue(), scheme)),
+				})
 				continue
 			}
-			if !IsValidLegacyMetricName(LabelValue(*l.Name)) {
-				escapeNameInPlace(l.Name, scheme)
+			if l.Name == nil || IsValidLegacyMetricName(LabelValue(l.GetName())) {
+				escaped.Label = append(escaped.Label, l)
+				continue
 			}
+			escaped.Label = append(escaped.Label, &dto.LabelPair{
+				Name:  proto.String(EscapeName(l.GetName(), scheme)),
+				Value: l.Value,
+			})
+		}
+		out.Metric = append(out.Metric, escaped)
+	}
+	return out
+}
+
+func metricNeedsEscaping(m *dto.Metric) bool {
+	for _, l := range m.Label {
+		if *l.Name == MetricNameLabel && !IsValidLegacyMetricName(LabelValue(*l.Value)) {
+			return true
+		}
+		if !IsValidLegacyMetricName(LabelValue(*l.Value)) {
+			return true
 		}
 	}
+	return false
 }
 
 const (
 	lowerhex = "0123456789abcdef"
 )
+
 // EscapeName escapes the incoming name according to the provided escaping
 // scheme. Depending on the rules of escaping, this may cause no change in the
 // string that is returned. (Especially NoEscaping, which by definition is a noop).
 // This function does not do any validation of the name.
 func EscapeName(name string, scheme EscapingScheme) string {
-	escaped := name
-	escapeNameInPlace(&escaped, scheme)
-	return escaped
-}
-
-func escapeNameInPlace(name *string, scheme EscapingScheme) {
-	if len(*name) == 0 {
-		return
+	if len(name) == 0 {
+		return name
 	}
 	var escaped strings.Builder
 	switch scheme {
 	case NoEscaping:
-			return
+		return name
 	case UnderscoreEscaping:
-		if IsValidLegacyMetricName(LabelValue(*name)) {
-			return
+		if IsValidLegacyMetricName(LabelValue(name)) {
+			return name
 		}
-		for i, b := range *name {
-			if isLegacyValidRune(b, i){
+		for i, b := range name {
+			if isLegacyValidRune(b, i) {
 				escaped.WriteRune(b)
 			} else {
 				escaped.WriteRune('_')
 			}
 		}
-		*name = escaped.String()
-		return
+		return escaped.String()
 	case DotsEscaping:
 		// Do not early return for legacy valid names, we still escape underscores.
-		for i, b := range *name {
+		for i, b := range name {
 			if b == '_' {
 				escaped.WriteString("__")
 			} else if b == '.' {
 				escaped.WriteString("_dot_")
-			} else if isLegacyValidRune(b, i){
+			} else if isLegacyValidRune(b, i) {
 				escaped.WriteRune(b)
 			} else {
 				escaped.WriteRune('_')
 			}
 		}
-		*name = escaped.String()
-		return
+		return escaped.String()
 	case ValueEncodingEscaping:
-		if IsValidLegacyMetricName(LabelValue(*name)) {
-			return
+		if IsValidLegacyMetricName(LabelValue(name)) {
+			return name
 		}
 		escaped.WriteString("U__")
-		for i, b := range *name {
-			if isLegacyValidRune(b, i){
+		for i, b := range name {
+			if isLegacyValidRune(b, i) {
 				escaped.WriteRune(b)
 			} else if !utf8.ValidRune(b) {
 				escaped.WriteString("_FFFD_")
@@ -268,8 +316,7 @@ func escapeNameInPlace(name *string, scheme EscapingScheme) {
 				escaped.WriteRune('_')
 			}
 		}
-		*name = escaped.String()
-		return
+		return escaped.String()
 	default:
 		panic(fmt.Sprintf("invalid escaping scheme %d", scheme))
 	}

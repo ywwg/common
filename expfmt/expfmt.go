@@ -83,6 +83,13 @@ func EscapingSchemeToFormat(s model.EscapingScheme) Format {
 }
 
 func FormatToEscapingScheme(format Format) model.EscapingScheme {
+	// XXXXXXXXXXXX this should be ParseContentType, not ParseAccept -- however
+	// the basic parsing algo is probably fine? and then we can have a more
+	// intelligent way of matching format than the string comparisons.
+
+	// Probably, Format needs to be a proper class with matcher functions rather
+	// than this thing we've got. Naturally people use the old strings everywhere
+	// but I don't think that's ok.
 	for _, ac := range goautoneg.ParseAccept(string(format)) {
 		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
 			switch Format(escapeParam) {

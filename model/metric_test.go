@@ -15,6 +15,11 @@ package model
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	dto "github.com/prometheus/client_model/go"
+	"google.golang.org/protobuf/proto"
 )
 
 func testMetric(t testing.TB) {
@@ -284,6 +289,189 @@ func TestEscapeName(t *testing.T) {
 			got = EscapeName(scenario.input, ValueEncodingEscaping)
 			if got != scenario.expectedValue {
 				t.Errorf("expected string output %s but got %s", scenario.expectedValue, got)
+			}
+		})
+	}
+}
+
+// TODO: TestEscapeMetricFamily exercise that everything is copied and nothing
+// is mutated on the input.  need to test the full proto... not sure why one def
+// has Unit and the other does not. Some way to ensure that everything is
+// covered without using reflection?
+// 
+// I bet we can write a test that USES reflection and then dies if the proto
+// changes.
+
+func TestEscapeMetricFamily(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		input    *dto.MetricFamily
+		scheme EscapingScheme
+		expected *dto.MetricFamily
+	} {
+		{
+			name: "empty",
+			input: &dto.MetricFamily{},
+			scheme: ValueEncodingEscaping,
+			expected: &dto.MetricFamily{},
+		},
+		{
+			name: "simple, no escaping needed",
+			scheme: ValueEncodingEscaping,
+			input: &dto.MetricFamily{
+				Name: proto.String("my_metric"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Counter: &dto.Counter{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("my_metric"),
+							},
+							{
+								Name: proto.String("some_label"),
+								Value: proto.String("label value"),
+							},
+						},
+					},
+				},
+			},
+			expected: &dto.MetricFamily{
+				Name: proto.String("my_metric"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Counter: &dto.Counter{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("my_metric"),
+							},
+							{
+								Name: proto.String("some_label"),
+								Value: proto.String("label value"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "counter, escaping needed",
+			scheme: ValueEncodingEscaping,
+			input: &dto.MetricFamily{
+				Name: proto.String("my.metric"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Counter: &dto.Counter{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("my.metric"),
+							},
+							{
+								Name: proto.String("some?label"),
+								Value: proto.String("label??value"),
+							},
+						},
+					},
+				},
+			},
+			expected: &dto.MetricFamily{
+				Name: proto.String("U__my_2e_metric"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Counter: &dto.Counter{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("U__my_2e_metric"),
+							},
+							{
+								Name: proto.String("U__some_3f_label"),
+								Value: proto.String("label??value"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "gauge, escaping needed",
+			scheme: DotsEscaping,
+			input: &dto.MetricFamily{
+				Name: proto.String("unicode.and.dots.花火"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_GAUGE.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Gauge: &dto.Gauge{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("unicode.and.dots.花火"),
+							},
+							{
+								Name: proto.String("some?label"),
+								Value: proto.String("label??value"),
+							},
+						},
+					},
+				},
+			},
+			expected: &dto.MetricFamily{
+				Name: proto.String("unicode_dot_and_dot_dots_dot___"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_GAUGE.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Gauge: &dto.Gauge{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("unicode_dot_and_dot_dots_dot___"),
+							},
+							{
+								Name: proto.String("some_label"),
+								Value: proto.String("label??value"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	unexportList := []interface{}{dto.MetricFamily{},dto.Metric{}, dto.LabelPair{}, dto.Counter{}, dto.Gauge{}}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			original := proto.Clone(scenario.input)
+			got := EscapeMetricFamily(scenario.input, scenario.scheme)
+			if !cmp.Equal(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)) {
+				t.Errorf("unexpected difference in escaped output:" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)) )
+			}
+			if !cmp.Equal(scenario.input, original, cmpopts.IgnoreUnexported(unexportList...)) {
+				t.Errorf("input was mutated during escaping" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)) )
 			}
 		})
 	}
