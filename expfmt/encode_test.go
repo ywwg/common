@@ -258,7 +258,7 @@ func TestEscapedEncode(t *testing.T) {
 						Value: proto.String("my.label.value"),
 					},
 				},
-				Counter: &dto.Counter{
+				Untyped: &dto.Untyped{
 					Value: proto.Float64(8),
 				},
 			},
@@ -275,49 +275,53 @@ func TestEscapedEncode(t *testing.T) {
 		t.Errorf("expected the output bytes buffer to be non-empty")
 	}
 
+	
+
 	buff.Reset()
 
-	// compactEncoder := NewEncoder(&buff, FmtProtoCompact)
-	// err = compactEncoder.Encode(metric)
-	// if err != nil {
-	// 	t.Errorf("unexpected error during encode: %s", err.Error())
-	// }
+	compactEncoder := NewEncoder(&buff, FmtProtoCompact)
+	err = compactEncoder.Encode(metric)
+	if err != nil {
+		t.Errorf("unexpected error during encode: %s", err.Error())
+	}
 
-	// out = buff.Bytes()
-	// if len(out) == 0 {
-	// 	t.Errorf("expected the output bytes buffer to be non-empty")
-	// }
+	out = buff.Bytes()
+	if len(out) == 0 {
+		t.Errorf("expected the output bytes buffer to be non-empty")
+	}
 
-	// buff.Reset()
+	buff.Reset()
 
-	// protoTextEncoder := NewEncoder(&buff, FmtProtoText)
-	// err = protoTextEncoder.Encode(metric)
-	// if err != nil {
-	// 	t.Errorf("unexpected error during encode: %s", err.Error())
-	// }
+	protoTextEncoder := NewEncoder(&buff, FmtProtoText)
+	err = protoTextEncoder.Encode(metric)
+	if err != nil {
+		t.Errorf("unexpected error during encode: %s", err.Error())
+	}
 
-	// out = buff.Bytes()
-	// if len(out) == 0 {
-	// 	t.Errorf("expected the output bytes buffer to be non-empty")
-	// }
+	out = buff.Bytes()
+	if len(out) == 0 {
+		t.Errorf("expected the output bytes buffer to be non-empty")
+	}
 
-	// buff.Reset()
+	buff.Reset()
 
-	// textEncoder := NewEncoder(&buff, FmtText_0_0_4)
-	// err = textEncoder.Encode(metric)
-	// if err != nil {
-	// 	t.Errorf("unexpected error during encode: %s", err.Error())
-	// }
+	textEncoder := NewEncoder(&buff, FmtText_0_0_4)
+	err = textEncoder.Encode(metric)
+	if err != nil {
+		t.Errorf("unexpected error during encode: %s", err.Error())
+	}
 
-	// out = buff.Bytes()
-	// if len(out) == 0 {
-	// 	t.Errorf("expected the output bytes buffer to be non-empty")
-	// }
+	out = buff.Bytes()
+	if len(out) == 0 {
+		t.Errorf("expected the output bytes buffer to be non-empty")
+	}
 
-	// expected := "# TYPE foo_metric untyped\n" +
-	// 	"foo_metric 1.234\n"
+	expected := `# TYPE foo_metric untyped
+foo_metric 1.234
+foo_metric{dotted_label_name="my.label.value"} 8
+`
 
-	// if string(out) != expected {
-	// 	t.Errorf("expected TextEncoder to return %s, but got %s instead", expected, string(out))
-	// }
+	if string(out) != expected {
+		t.Errorf("expected TextEncoder to return %s, but got %s instead", expected, string(out))
+	}
 }

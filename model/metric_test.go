@@ -233,11 +233,12 @@ func TestMetricToString(t *testing.T) {
 
 func TestEscapeName(t *testing.T) {
 	scenarios := []struct {
-		name                string
-		input               string
-		expectedUnderscores string
-		expectedDots        string
-		expectedValue       string
+		name                  string
+		input                 string
+		expectedUnderscores   string
+		expectedDots          string
+		expectedUnescapedDots string
+		expectedValue         string
 	}{
 		{
 			name: "empty string",
@@ -248,29 +249,35 @@ func TestEscapeName(t *testing.T) {
 			expectedUnderscores: "no:escaping_required",
 			// Dots escaping will escape underscores even though it's not strictly
 			// necessary for compatibility.
-			expectedDots:  "no:escaping__required",
-			expectedValue: "no:escaping_required",
+			expectedDots:          "no:escaping__required",
+			expectedUnescapedDots: "no:escaping_required",
+			expectedValue:         "no:escaping_required",
 		},
 		{
-			name:                "name with dots",
-			input:               "mysystem.prod.west.cpu.load",
-			expectedUnderscores: "mysystem_prod_west_cpu_load",
-			expectedDots:        "mysystem_dot_prod_dot_west_dot_cpu_dot_load",
-			expectedValue:       "U__mysystem_2e_prod_2e_west_2e_cpu_2e_load",
+			name:                  "name with dots",
+			input:                 "mysystem.prod.west.cpu.load",
+			expectedUnderscores:   "mysystem_prod_west_cpu_load",
+			expectedDots:          "mysystem_dot_prod_dot_west_dot_cpu_dot_load",
+			expectedUnescapedDots: "mysystem.prod.west.cpu.load",
+			expectedValue:         "U__mysystem_2e_prod_2e_west_2e_cpu_2e_load",
 		},
 		{
-			name:                "name with dots and colon",
-			input:               "http.status:sum",
-			expectedUnderscores: "http_status:sum",
-			expectedDots:        "http_dot_status:sum",
-			expectedValue:       "U__http_2e_status:sum",
+			name:                  "name with dots and colon",
+			input:                 "http.status:sum",
+			expectedUnderscores:   "http_status:sum",
+			expectedDots:          "http_dot_status:sum",
+			expectedUnescapedDots: "http.status:sum",
+			expectedValue:         "U__http_2e_status:sum",
 		},
 		{
 			name:                "name with unicode characters > 0x100",
 			input:               "花火",
 			expectedUnderscores: "__",
 			expectedDots:        "__",
-			expectedValue:       "U___82b1__706b_",
+			// Dots-replacement does not know the difference between two replaced
+			// characters and a single underscore.
+			expectedUnescapedDots: "_",
+			expectedValue:         "U___82b1__706b_",
 		},
 	}
 
@@ -280,15 +287,95 @@ func TestEscapeName(t *testing.T) {
 			if got != scenario.expectedUnderscores {
 				t.Errorf("expected string output %s but got %s", scenario.expectedUnderscores, got)
 			}
+			// Unescaping with the underscore method is a noop.
+			got = UnescapeName(got, UnderscoreEscaping)
+			if got != scenario.expectedUnderscores {
+				t.Errorf("expected unescaped string output %s but got %s", scenario.expectedUnderscores, got)
+			}
 
 			got = EscapeName(scenario.input, DotsEscaping)
 			if got != scenario.expectedDots {
 				t.Errorf("expected string output %s but got %s", scenario.expectedDots, got)
 			}
+			got = UnescapeName(got, DotsEscaping)
+			if got != scenario.expectedUnescapedDots {
+				t.Errorf("expected unescaped string output %s but got %s", scenario.expectedUnescapedDots, got)
+			}
 
 			got = EscapeName(scenario.input, ValueEncodingEscaping)
 			if got != scenario.expectedValue {
 				t.Errorf("expected string output %s but got %s", scenario.expectedValue, got)
+			}
+			// Unescaped result should always be identical to the original input.
+			got = UnescapeName(got, ValueEncodingEscaping)
+			if got != scenario.input {
+				t.Errorf("expected unescaped string output %s but got %s", scenario.input, got)
+			}
+		})
+	}
+}
+
+func TestValueUnescapeErrors(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name: "empty string",
+		},
+		{
+			name:     "basic case, no error",
+			input:    "U__no:unescapingrequired",
+			expected: "no:unescapingrequired",
+		},
+		{
+			name:     "capitals ok, no error",
+			input:    "U__capitals_2E_ok",
+			expected: "capitals.ok",
+		},
+		{
+			name:     "underscores, no error",
+			input:    "U__underscores__doubled__",
+			expected: "underscores_doubled_",
+		},
+		{
+			name:     "invalid single underscore",
+			input:    "U__underscores_doubled_",
+			expected: "U__underscores_doubled_",
+		},
+		{
+			name:     "invalid single underscore, 2",
+			input:    "U__underscores__doubled_",
+			expected: "U__underscores__doubled_",
+		},
+		{
+			name:     "giant fake utf8 code",
+			input:    "U__my__hack_2e_attempt_872348732fabdabbab_",
+			expected: "U__my__hack_2e_attempt_872348732fabdabbab_",
+		},
+		{
+			name:     "trailing utf8",
+			input:    "U__my__hack_2e",
+			expected: "U__my__hack_2e",
+		},
+		{
+			name:     "invalid utf8 value",
+			input:    "U__bad__utf_2eg_",
+			expected: "U__bad__utf_2eg_",
+		},
+		{
+			name:     "surrogate utf8 value",
+			input:    "U__bad__utf_D900_",
+			expected: "U__bad__utf_D900_",
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			got := UnescapeName(scenario.input, ValueEncodingEscaping)
+			if got != scenario.expected {
+				t.Errorf("expected unescaped string output %s but got %s", scenario.expected, got)
 			}
 		})
 	}

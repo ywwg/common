@@ -323,6 +323,87 @@ func EscapeName(name string, scheme EscapingScheme) string {
 	}
 }
 
+// lower function taken from strconv.atoi
+func lower(c byte) byte {
+	return c | ('x' - 'X')
+}
+
+// UnescapeName unescapes the incoming name according to the provided escaping
+// scheme if possible. Some schemes are partially or totall non-roundtripable. If any error is enountered, returns the original
+// input.
+func UnescapeName(name string, scheme EscapingScheme) string {
+	if len(name) == 0 {
+		return name
+	}
+	switch scheme {
+	case NoEscaping:
+		return name
+	case UnderscoreEscaping:
+		// It is not possible to unescape from underscore replacement.
+		return name
+	case DotsEscaping:
+		name = strings.ReplaceAll(name, "_dot_", ".")
+		name = strings.ReplaceAll(name, "__", "_")
+		return name
+	case ValueEncodingEscaping:
+		escapedName, found := strings.CutPrefix(name, "U__")
+		if !found {
+			return name
+		}
+
+		var unescaped strings.Builder
+	TOP:
+		for i := 0; i < len(escapedName); i++ {
+			// All non-underscores are treated normally.
+			if escapedName[i] != '_' {
+				unescaped.WriteByte(escapedName[i])
+				continue
+			}
+			i++
+			if i >= len(escapedName) {
+				return name
+			}
+			// A double underscore is a single underscore.
+			if escapedName[i] == '_' {
+				unescaped.WriteByte('_')
+				continue
+			}
+			// We think we are in a UTF8 code, process it.
+			var utf8Val uint
+			for j := 0; i < len(escapedName); j++ {
+				// This is too many characters for a utf8 value.
+				if j > 4 {
+					return name
+				}
+				// Found a closing underscore, convert to a rune, check validity, and append.
+				if escapedName[i] == '_' {
+					utf8Rune := rune(utf8Val)
+					if !utf8.ValidRune(utf8Rune) {
+						return name
+					}
+					unescaped.WriteRune(utf8Rune)
+					continue TOP
+				}
+				r := lower(escapedName[i])
+				utf8Val *= 16
+				if r >= '0' && r <= '9' {
+					utf8Val += uint(r) - '0'
+				} else if r >= 'a' && r <= 'f' {
+					utf8Val += uint(r) - 'a' + 10
+				} else {
+					return name
+				}
+				i++
+			}
+			// Didn't find closing underscore, invalid.
+			return name
+		}
+		return unescaped.String()
+	default:
+		panic(fmt.Sprintf("invalid escaping scheme %d", scheme))
+	}
+}
+
 func isLegacyValidRune(b rune, i int) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == ':' || (b >= '0' && b <= '9' && i > 0)
 }

@@ -73,16 +73,18 @@ func ResponseFormat(h http.Header) Format {
 // NewDecoder returns a new decoder based on the given input format.
 // If the input format does not imply otherwise, a text format decoder is returned.
 func NewDecoder(r io.Reader, format Format) Decoder {
-	switch format {
-	case FmtProtoDelim:
-		return &protoDecoder{r: r}
+	escapingScheme := FormatToEscapingScheme(format)
+	switch format.ContentType() {
+	case TypeProtoDelim:
+		return &protoDecoder{r: r, escaping: escapingScheme}
 	}
-	return &textDecoder{r: r}
+	return &textDecoder{r: r, escaping: escapingScheme}
 }
 
 // protoDecoder implements the Decoder interface for protocol buffers.
 type protoDecoder struct {
 	r io.Reader
+	escaping model.EscapingScheme
 }
 
 // Decode implements the Decoder interface.
@@ -118,6 +120,7 @@ func (d *protoDecoder) Decode(v *dto.MetricFamily) error {
 // textDecoder implements the Decoder interface for the text protocol.
 type textDecoder struct {
 	r    io.Reader
+	escaping model.EscapingScheme
 	fams map[string]*dto.MetricFamily
 	err  error
 }

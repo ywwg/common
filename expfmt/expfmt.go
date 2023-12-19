@@ -16,8 +16,8 @@ package expfmt
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg"
 	"github.com/prometheus/common/model"
 )
 
@@ -43,7 +43,8 @@ const (
 	OpenMetricsVersion_1_0_0 = "1.0.0"
 	OpenMetricsVersion_0_0_1 = "0.0.1"
 
-	// The Content-Type values for the different wire protocols.
+	// The Content-Type values for the different wire protocols. Do not do direct
+	// to comparisons to these constants, instead use the comparison functions.
 	FmtUnknown                Format = `<unknown>`
 	FmtText_0_0_4             Format = `text/plain; version=` + TextVersion_0_0_4 + `; charset=utf-8`
 	FmtText_1_0_0             Format = `text/plain; version=` + TextVersion_1_0_0 + `; charset=utf-8`
@@ -66,6 +67,65 @@ const (
 	hdrContentType = "Content-Type"
 	hdrAccept      = "Accept"
 )
+
+type FormatType int
+
+const (
+	TypeUnknown = iota
+	TypeProtoCompact
+	TypeProtoDelim
+	TypeProtoText
+	TypeTextPlain
+	TypeOpenMetrics
+)
+
+func (f Format) ContentType() FormatType {
+	toks := strings.Split(string(f), ";")
+	if len(toks) < 2 {
+		return TypeUnknown
+	}
+
+	params := make(map[string]string)
+	for i, t := range toks {
+		if i == 0 {
+			continue
+		}
+		args := strings.Split(t, "=")
+		if len(args) != 2 {
+			continue
+		}
+		params[strings.TrimSpace(args[0])] = strings.TrimSpace(args[1])
+	}
+	
+	switch strings.TrimSpace(toks[0]) {
+		case ProtoType:
+			if params["proto"] != ProtoProtocol {
+				return TypeUnknown
+			}
+			switch params["encoding"] {
+				case "delimited":
+					return TypeProtoDelim
+				case "text":
+					return TypeProtoText
+				case "compact-text":
+					return TypeProtoCompact
+				default:
+					return TypeUnknown
+			}
+		case OpenMetricsType:
+			if params["charset"] != "utf-8" {
+				return TypeUnknown
+			}
+			return TypeOpenMetrics
+		case "text/plain":
+			if params["charset"] != "utf-8" {
+				return TypeUnknown
+			}
+			return TypeTextPlain
+		default:
+			return TypeUnknown
+	}
+}
 
 func EscapingSchemeToFormat(s model.EscapingScheme) Format {
 	switch s {
@@ -90,9 +150,13 @@ func FormatToEscapingScheme(format Format) model.EscapingScheme {
 	// Probably, Format needs to be a proper class with matcher functions rather
 	// than this thing we've got. Naturally people use the old strings everywhere
 	// but I don't think that's ok.
-	for _, ac := range goautoneg.ParseAccept(string(format)) {
-		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
-			switch Format(escapeParam) {
+	for _, p := range strings.Split(string(format), ";") {
+		toks := strings.Split(p, "=")
+		if len(toks) != 2 {
+			continue
+		}
+		if strings.TrimSpace(toks[0]) == "escaping" {
+			switch f := Format(strings.TrimSpace(toks[1])); f {
 				case FmtEscapeNone:
 					return model.NoEscaping
 				case FmtEscapeUnderscores:
@@ -102,9 +166,9 @@ func FormatToEscapingScheme(format Format) model.EscapingScheme {
 				case FmtEscapeValues:
 					return model.ValueEncodingEscaping
 				default:
-					panic("unknown format scheme "+escapeParam)
+					panic("unknown format scheme "+f)
 			}
 		}
 	}
-	return model.NoEscaping
+	return model.DefaultNameEscapingScheme
 }
