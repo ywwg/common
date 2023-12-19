@@ -334,7 +334,7 @@ func TestEscapeMetricFamily(t *testing.T) {
 							},
 							{
 								Name: proto.String("some_label"),
-								Value: proto.String("label value"),
+								Value: proto.String("labelvalue"),
 							},
 						},
 					},
@@ -356,7 +356,55 @@ func TestEscapeMetricFamily(t *testing.T) {
 							},
 							{
 								Name: proto.String("some_label"),
-								Value: proto.String("label value"),
+								Value: proto.String("labelvalue"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "label name escaping needed",
+			scheme: ValueEncodingEscaping,
+			input: &dto.MetricFamily{
+				Name: proto.String("my_metric"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Counter: &dto.Counter{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("my_metric"),
+							},
+							{
+								Name: proto.String("some.label"),
+								Value: proto.String("labelvalue"),
+							},
+						},
+					},
+				},
+			},
+			expected: &dto.MetricFamily{
+				Name: proto.String("my_metric"),
+				Help: proto.String("some help text"),
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{
+					{
+						Counter: &dto.Counter{
+							Value: proto.Float64(34.2),
+						},
+						Label: []*dto.LabelPair{
+							{
+								Name: proto.String("__name__"),
+								Value: proto.String("my_metric"),
+							},
+							{
+								Name: proto.String("U__some_2e_label"),
+								Value: proto.String("labelvalue"),
 							},
 						},
 					},
@@ -429,7 +477,7 @@ func TestEscapeMetricFamily(t *testing.T) {
 								Value: proto.String("unicode.and.dots.花火"),
 							},
 							{
-								Name: proto.String("some?label"),
+								Name: proto.String("some_label"),
 								Value: proto.String("label??value"),
 							},
 						},

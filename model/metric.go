@@ -174,9 +174,10 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 	return true
 }
 
-// EscapeMetricFamily escapes the given metric names and labels in place with
-// the given escaping scheme. Uses the same pointers to fields when possible,
-// otherwise creates new escaped versions so as not to mutate the input.
+// EscapeMetricFamily escapes the given metric names and labels with the given
+// escaping scheme. Returns a new object that uses the same pointers to fields
+// when possible and creates new escaped versions so as not to mutate the
+// input.
 func EscapeMetricFamily(v *dto.MetricFamily, scheme EscapingScheme) *dto.MetricFamily {
 	if v == nil {
 		return nil
@@ -240,10 +241,10 @@ func EscapeMetricFamily(v *dto.MetricFamily, scheme EscapingScheme) *dto.MetricF
 
 func metricNeedsEscaping(m *dto.Metric) bool {
 	for _, l := range m.Label {
-		if *l.Name == MetricNameLabel && !IsValidLegacyMetricName(LabelValue(*l.Value)) {
+		if l.GetName() == MetricNameLabel && !IsValidLegacyMetricName(LabelValue(l.GetValue())) {
 			return true
 		}
-		if !IsValidLegacyMetricName(LabelValue(*l.Value)) {
+		if !IsValidLegacyMetricName(LabelValue(l.GetName())) {
 			return true
 		}
 	}
