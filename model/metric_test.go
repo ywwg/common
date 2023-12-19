@@ -294,14 +294,6 @@ func TestEscapeName(t *testing.T) {
 	}
 }
 
-// TODO: TestEscapeMetricFamily exercise that everything is copied and nothing
-// is mutated on the input.  need to test the full proto... not sure why one def
-// has Unit and the other does not. Some way to ensure that everything is
-// covered without using reflection?
-//
-// I bet we can write a test that USES reflection and then dies if the proto
-// changes.
-
 func TestEscapeMetricFamily(t *testing.T) {
 	scenarios := []struct {
 		name     string
@@ -521,10 +513,8 @@ func TestEscapeMetricFamily(t *testing.T) {
 			if !cmp.Equal(scenario.input, original, cmpopts.IgnoreUnexported(unexportList...)) {
 				t.Errorf("input was mutated during escaping" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)))
 			}
-
 		})
 	}
-
 }
 
 // TestProtoFormatUnchanged checks to see if the proto format changed, in which
@@ -554,7 +544,6 @@ func TestProtoFormatUnchanged(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-
 			desc := scenario.input.ProtoReflect().Descriptor()
 			fields := desc.Fields()
 			if fields.Len() != len(scenario.expectFields) {
