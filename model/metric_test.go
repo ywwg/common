@@ -233,44 +233,44 @@ func TestMetricToString(t *testing.T) {
 
 func TestEscapeName(t *testing.T) {
 	scenarios := []struct {
-		name     string
-		input    string
+		name                string
+		input               string
 		expectedUnderscores string
-		expectedDots string
-		expectedValue string
-	} {
+		expectedDots        string
+		expectedValue       string
+	}{
 		{
 			name: "empty string",
 		},
 		{
-			name: "legacy valid name",
-			input: "no:escaping_required",
+			name:                "legacy valid name",
+			input:               "no:escaping_required",
 			expectedUnderscores: "no:escaping_required",
 			// Dots escaping will escape underscores even though it's not strictly
 			// necessary for compatibility.
-			expectedDots: "no:escaping__required",
+			expectedDots:  "no:escaping__required",
 			expectedValue: "no:escaping_required",
 		},
 		{
-			name: "name with dots",
-			input: "mysystem.prod.west.cpu.load",
+			name:                "name with dots",
+			input:               "mysystem.prod.west.cpu.load",
 			expectedUnderscores: "mysystem_prod_west_cpu_load",
-			expectedDots: "mysystem_dot_prod_dot_west_dot_cpu_dot_load",
-			expectedValue: "U__mysystem_2e_prod_2e_west_2e_cpu_2e_load",
+			expectedDots:        "mysystem_dot_prod_dot_west_dot_cpu_dot_load",
+			expectedValue:       "U__mysystem_2e_prod_2e_west_2e_cpu_2e_load",
 		},
 		{
-			name: "name with dots and colon",
-			input: "http.status:sum",
+			name:                "name with dots and colon",
+			input:               "http.status:sum",
 			expectedUnderscores: "http_status:sum",
-			expectedDots: "http_dot_status:sum",
-			expectedValue: "U__http_2e_status:sum",
+			expectedDots:        "http_dot_status:sum",
+			expectedValue:       "U__http_2e_status:sum",
 		},
 		{
-			name: "name with unicode characters > 0x100",
-			input: "花火",
+			name:                "name with unicode characters > 0x100",
+			input:               "花火",
 			expectedUnderscores: "__",
-			expectedDots: "__",
-			expectedValue: "U___82b1__706b_",
+			expectedDots:        "__",
+			expectedValue:       "U___82b1__706b_",
 		},
 	}
 
@@ -298,7 +298,7 @@ func TestEscapeName(t *testing.T) {
 // is mutated on the input.  need to test the full proto... not sure why one def
 // has Unit and the other does not. Some way to ensure that everything is
 // covered without using reflection?
-// 
+//
 // I bet we can write a test that USES reflection and then dies if the proto
 // changes.
 
@@ -306,17 +306,17 @@ func TestEscapeMetricFamily(t *testing.T) {
 	scenarios := []struct {
 		name     string
 		input    *dto.MetricFamily
-		scheme EscapingScheme
+		scheme   EscapingScheme
 		expected *dto.MetricFamily
-	} {
+	}{
 		{
-			name: "empty",
-			input: &dto.MetricFamily{},
-			scheme: ValueEncodingEscaping,
+			name:     "empty",
+			input:    &dto.MetricFamily{},
+			scheme:   ValueEncodingEscaping,
 			expected: &dto.MetricFamily{},
 		},
 		{
-			name: "simple, no escaping needed",
+			name:   "simple, no escaping needed",
 			scheme: ValueEncodingEscaping,
 			input: &dto.MetricFamily{
 				Name: proto.String("my_metric"),
@@ -329,11 +329,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("my_metric"),
 							},
 							{
-								Name: proto.String("some_label"),
+								Name:  proto.String("some_label"),
 								Value: proto.String("labelvalue"),
 							},
 						},
@@ -351,11 +351,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("my_metric"),
 							},
 							{
-								Name: proto.String("some_label"),
+								Name:  proto.String("some_label"),
 								Value: proto.String("labelvalue"),
 							},
 						},
@@ -364,7 +364,7 @@ func TestEscapeMetricFamily(t *testing.T) {
 			},
 		},
 		{
-			name: "label name escaping needed",
+			name:   "label name escaping needed",
 			scheme: ValueEncodingEscaping,
 			input: &dto.MetricFamily{
 				Name: proto.String("my_metric"),
@@ -377,11 +377,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("my_metric"),
 							},
 							{
-								Name: proto.String("some.label"),
+								Name:  proto.String("some.label"),
 								Value: proto.String("labelvalue"),
 							},
 						},
@@ -399,11 +399,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("my_metric"),
 							},
 							{
-								Name: proto.String("U__some_2e_label"),
+								Name:  proto.String("U__some_2e_label"),
 								Value: proto.String("labelvalue"),
 							},
 						},
@@ -412,7 +412,7 @@ func TestEscapeMetricFamily(t *testing.T) {
 			},
 		},
 		{
-			name: "counter, escaping needed",
+			name:   "counter, escaping needed",
 			scheme: ValueEncodingEscaping,
 			input: &dto.MetricFamily{
 				Name: proto.String("my.metric"),
@@ -425,11 +425,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("my.metric"),
 							},
 							{
-								Name: proto.String("some?label"),
+								Name:  proto.String("some?label"),
 								Value: proto.String("label??value"),
 							},
 						},
@@ -447,11 +447,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("U__my_2e_metric"),
 							},
 							{
-								Name: proto.String("U__some_3f_label"),
+								Name:  proto.String("U__some_3f_label"),
 								Value: proto.String("label??value"),
 							},
 						},
@@ -460,7 +460,7 @@ func TestEscapeMetricFamily(t *testing.T) {
 			},
 		},
 		{
-			name: "gauge, escaping needed",
+			name:   "gauge, escaping needed",
 			scheme: DotsEscaping,
 			input: &dto.MetricFamily{
 				Name: proto.String("unicode.and.dots.花火"),
@@ -473,11 +473,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("unicode.and.dots.花火"),
 							},
 							{
-								Name: proto.String("some_label"),
+								Name:  proto.String("some_label"),
 								Value: proto.String("label??value"),
 							},
 						},
@@ -495,11 +495,11 @@ func TestEscapeMetricFamily(t *testing.T) {
 						},
 						Label: []*dto.LabelPair{
 							{
-								Name: proto.String("__name__"),
+								Name:  proto.String("__name__"),
 								Value: proto.String("unicode_dot_and_dot_dots_dot___"),
 							},
 							{
-								Name: proto.String("some_label"),
+								Name:  proto.String("some_label"),
 								Value: proto.String("label??value"),
 							},
 						},
@@ -509,17 +509,63 @@ func TestEscapeMetricFamily(t *testing.T) {
 		},
 	}
 
-	unexportList := []interface{}{dto.MetricFamily{},dto.Metric{}, dto.LabelPair{}, dto.Counter{}, dto.Gauge{}}
+	unexportList := []interface{}{dto.MetricFamily{}, dto.Metric{}, dto.LabelPair{}, dto.Counter{}, dto.Gauge{}}
 
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			original := proto.Clone(scenario.input)
 			got := EscapeMetricFamily(scenario.input, scenario.scheme)
 			if !cmp.Equal(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)) {
-				t.Errorf("unexpected difference in escaped output:" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)) )
+				t.Errorf("unexpected difference in escaped output:" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)))
 			}
 			if !cmp.Equal(scenario.input, original, cmpopts.IgnoreUnexported(unexportList...)) {
-				t.Errorf("input was mutated during escaping" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)) )
+				t.Errorf("input was mutated during escaping" + cmp.Diff(scenario.expected, got, cmpopts.IgnoreUnexported(unexportList...)))
+			}
+
+		})
+	}
+
+}
+
+// TestProtoFormatUnchanged checks to see if the proto format changed, in which
+// case EscapeMetricFamily will need to be updated.
+func TestProtoFormatUnchanged(t *testing.T) {
+	scenarios := []struct {
+		name         string
+		input        proto.Message
+		expectFields []string
+	}{
+		{
+			name:         "MetricFamily",
+			input:        &dto.MetricFamily{},
+			expectFields: []string{"name", "help", "type", "metric"},
+		},
+		{
+			name:         "Metric",
+			input:        &dto.Metric{},
+			expectFields: []string{"label", "gauge", "counter", "summary", "untyped", "histogram", "timestamp_ms"},
+		},
+		{
+			name:         "LabelPair",
+			input:        &dto.LabelPair{},
+			expectFields: []string{"name", "value"},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+
+			desc := scenario.input.ProtoReflect().Descriptor()
+			fields := desc.Fields()
+			if fields.Len() != len(scenario.expectFields) {
+				t.Errorf("dto.MetricFamily changed length, expected %d, got %d", len(scenario.expectFields), fields.Len())
+			}
+
+			for i := 0; i < fields.Len(); i++ {
+				got := fields.Get(i).TextName()
+				if got != scenario.expectFields[i] {
+					t.Errorf("dto.MetricFamily field mismatch, expected %s got %s", scenario.expectFields[i], got)
+				}
 			}
 		})
 	}
