@@ -142,7 +142,7 @@ func EscapingSchemeToFormat(s model.EscapingScheme) Format {
 	}
 }
 
-func FormatToEscapingScheme(format Format) model.EscapingScheme {
+func (format Format) ToEscapingScheme() model.EscapingScheme {
 	// XXXXXXXXXXXX this should be ParseContentType, not ParseAccept -- however
 	// the basic parsing algo is probably fine? and then we can have a more
 	// intelligent way of matching format than the string comparisons.
@@ -154,6 +154,10 @@ func FormatToEscapingScheme(format Format) model.EscapingScheme {
 		toks := strings.Split(p, "=")
 		if len(toks) != 2 {
 			continue
+		}
+		// By definition, if utf8 is allowed then names are not escaped.
+		if strings.TrimSpace(toks[0]) == "validchars" && strings.TrimSpace(toks[1]) == "utf8" {
+			return model.NoEscaping
 		}
 		if strings.TrimSpace(toks[0]) == "escaping" {
 			switch f := Format(strings.TrimSpace(toks[1])); f {
@@ -172,3 +176,16 @@ func FormatToEscapingScheme(format Format) model.EscapingScheme {
 	}
 	return model.DefaultNameEscapingScheme
 }
+
+// func (format Format) UTF8NamesValid() bool {
+// 	for _, p := range strings.Split(string(format), ";") {
+// 		toks := strings.Split(p, "=")
+// 		if len(toks) != 2 {
+// 			continue
+// 		}
+// 		if strings.TrimSpace(toks[0]) == "validchars" {
+// 			return strings.TrimSpace(toks[1]) == "utf8"  
+// 		}
+// 	} 
+// 	return false
+// }

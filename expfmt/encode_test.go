@@ -52,22 +52,27 @@ func TestNegotiate(t *testing.T) {
 		},
 		{
 			name:              "delimited format utf8",
-			acceptHeaderValue: acceptValuePrefix + ";encoding=delimited; validation-scheme=utf8;",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=delimited; validchars=utf8;",
 			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited; validchars=utf8",
 		},
 		{
 			name:              "text format utf8",
-			acceptHeaderValue: acceptValuePrefix + ";encoding=text; validation-scheme=utf8;",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=text; validchars=utf8;",
 			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=text; validchars=utf8",
 		},
 		{
 			name:              "compact text format utf8",
-			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text; validation-scheme=utf8;",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text; validchars=utf8;",
 			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=compact-text; validchars=utf8",
 		},
 		{
 			name:              "plain text format 0.0.4 with utf8 not valid, falls back",
-			acceptHeaderValue: "text/plain;version=0.0.4;validation-scheme=utf8;",
+			acceptHeaderValue: "text/plain;version=0.0.4;validchars=utf8; escaping=dots",
+			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8; escaping=dots",
+		},
+		{
+			name:              "plain text format 0.0.4 with utf8 not valid, falls back",
+			acceptHeaderValue: "text/plain;version=0.0.4;validchars=utf8;",
 			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8; escaping=underscores",
 		},
 		{
@@ -77,7 +82,7 @@ func TestNegotiate(t *testing.T) {
 		},
 		{
 			name:              "plain text format 1.0.0 with utf8",
-			acceptHeaderValue: "text/plain;version=1.0.0; validation-scheme=utf8;",
+			acceptHeaderValue: "text/plain;version=1.0.0; validchars=utf8;",
 			expectedFmt:       "text/plain; version=1.0.0; charset=utf-8; validchars=utf8",
 		},
 	}
@@ -101,6 +106,7 @@ func TestNegotiate(t *testing.T) {
 }
 
 func TestNegotiateOpenMetrics(t *testing.T) {
+	acceptValuePrefix := "application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily"
 	tests := []struct {
 		name              string
 		acceptHeaderValue string
@@ -113,8 +119,8 @@ func TestNegotiateOpenMetrics(t *testing.T) {
 		},
 		{
 			name:              "OM format, 0.0.1 version",
-			acceptHeaderValue: "application/openmetrics-text;version=0.0.1",
-			expectedFmt:       "application/openmetrics-text; version=0.0.1; charset=utf-8; escaping=values",
+			acceptHeaderValue: "application/openmetrics-text;version=0.0.1; escaping=underscores",
+			expectedFmt:       "application/openmetrics-text; version=0.0.1; charset=utf-8; escaping=underscores",
 		},
 		{
 			name:              "OM format, 1.0.0 version",
@@ -128,23 +134,73 @@ func TestNegotiateOpenMetrics(t *testing.T) {
 		},
 		{
 			name:              "OM format, 2.0.0 version, utf8",
-			acceptHeaderValue: "application/openmetrics-text;version=2.0.0;validation-scheme=utf8;",
+			acceptHeaderValue: "application/openmetrics-text;version=2.0.0;validchars=utf8;",
 			expectedFmt:       "application/openmetrics-text; version=2.0.0; charset=utf-8; validchars=utf8",
 		},
 		{
 			name:              "OM format, 0.0.1 version with utf8 is not valid, falls back",
-			acceptHeaderValue: "application/openmetrics-text;version=0.0.1;validation-scheme=utf8;",
+			acceptHeaderValue: "application/openmetrics-text;version=0.0.1;validchars=utf8;",
 			expectedFmt:       "application/openmetrics-text; version=0.0.1; charset=utf-8; escaping=values",
 		},
 		{
 			name:              "OM format, 1.0.0 version with utf8 is not valid, falls back",
-			acceptHeaderValue: "application/openmetrics-text;version=1.0.0;validation-scheme=utf8;",
+			acceptHeaderValue: "application/openmetrics-text;version=1.0.0;validchars=utf8;",
 			expectedFmt:       "application/openmetrics-text; version=1.0.0; charset=utf-8; escaping=values",
 		},
 		{
 			name:              "OM format, invalid version",
 			acceptHeaderValue: "application/openmetrics-text;version=0.0.4",
 			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8; escaping=values",
+		},
+		{
+			name:              "compact text format",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text; escaping=underscores",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=compact-text; escaping=underscores",
+		},
+		{
+			name:              "plain text format",
+			acceptHeaderValue: "text/plain;version=0.0.4",
+			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8; escaping=values",
+		},
+		{
+			name:              "plain text format 1.0.0",
+			acceptHeaderValue: "text/plain;version=1.0.0",
+			expectedFmt:       "text/plain; version=0.0.4; charset=utf-8; escaping=values",
+		},
+		{
+			name:              "plain text format 1.0.0",
+			acceptHeaderValue: "text/plain;version=1.0.0; validchars=utf8",
+			expectedFmt:       "text/plain; version=1.0.0; charset=utf-8; validchars=utf8",
+		},
+		{
+			name:              "delimited format utf8",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=delimited; validchars=utf8;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited; validchars=utf8",
+		},
+		{
+			name:              "text format utf8",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=text; validchars=utf8;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=text; validchars=utf8",
+		},
+		{
+			name:              "compact text format utf8",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text; validchars=utf8;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=compact-text; validchars=utf8",
+		},
+		{
+			name:              "delimited format escaped",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=delimited; escaping=underscores;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=delimited; escaping=underscores",
+		},
+		{
+			name:              "text format escaped",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=text; escaping=underscores;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=text; escaping=underscores",
+		},
+		{
+			name:              "compact text format escaped",
+			acceptHeaderValue: acceptValuePrefix + ";encoding=compact-text; escaping=underscores;",
+			expectedFmt:       "application/vnd.google.protobuf; proto=io.prometheus.client.MetricFamily; encoding=compact-text; escaping=underscores",
 		},
 	}
 
@@ -274,8 +330,6 @@ func TestEscapedEncode(t *testing.T) {
 	if len(out) == 0 {
 		t.Errorf("expected the output bytes buffer to be non-empty")
 	}
-
-	
 
 	buff.Reset()
 
