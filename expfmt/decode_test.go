@@ -86,7 +86,7 @@ mf2 4
 	for {
 		var smpls model.Vector
 		err := dec.Decode(&smpls)
-		if err == io.EOF {
+		if err != nil && errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -374,7 +374,7 @@ func TestProtoDecoder(t *testing.T) {
 			model.NameValidationScheme = model.LegacyValidation
 			var smpls model.Vector
 			err := dec.Decode(&smpls)
-			if err == io.EOF {
+			if err != nil && errors.Is(err, io.EOF) {
 				break
 			}
 			if scenario.legacyNameFail {
@@ -552,7 +552,7 @@ func TestTextDecoderWithBufioReader(t *testing.T) {
 	for {
 		var mf dto.MetricFamily
 		if err := dec.Decode(&mf); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			t.Fatalf("Unexpected error: %v", err)
