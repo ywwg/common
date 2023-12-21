@@ -75,15 +75,14 @@ func ResponseFormat(h http.Header) Format {
 func NewDecoder(r io.Reader, format Format) Decoder {
 	switch format.ContentType() {
 	case TypeProtoDelim:
-		return &protoDecoder{r: r, escaping: format.ToEscapingScheme()}
+		return &protoDecoder{r: r}
 	}
-	return &textDecoder{r: r, escaping: format.ToEscapingScheme()}
+	return &textDecoder{r: r}
 }
 
 // protoDecoder implements the Decoder interface for protocol buffers.
 type protoDecoder struct {
 	r io.Reader
-	escaping model.EscapingScheme
 }
 
 // Decode implements the Decoder interface.
@@ -97,23 +96,19 @@ func (d *protoDecoder) Decode(v *dto.MetricFamily) error {
 	// or a validchars=utf8.  That's what we need to do here.
 
 	// what if validchars and also default is escaping??
+
+	// oof, I think this was all wrong. if it's escaped, it's escaped.
+	// validity-checking is all we need -- OR, do we need to check validity on a
+	// per-call basis? I don't think so... we just go with the default
 	opts := protodelim.UnmarshalOptions{
 		MaxSize: -1,
 	}
 	if err := opts.UnmarshalFrom(bufio.NewReader(d.r), v); err != nil {
 		return err
 	}
-	return d.processDecoded(v)
-}
-
-// processDecoded takes a successfully unmarshalled MetricFamily proto and does
-// any necessary unescaping and validation.
-func (d *protoDecoder) processDecoded(v *dto.MetricFamily) error {
-	name := model.UnescapeName(v.GetName(), d.escaping)
-	if !model.IsValidMetricName(model.LabelValue(name)) {
-		return fmt.Errorf("invalid metric name %q", name)
+	if !model.IsValidMetricName(model.LabelValue(v.GetName())) {
+		return fmt.Errorf("invalid metric name %q", v.GetName())
 	}
-	*v.Name = name
 	for _, m := range v.GetMetric() {
 		if m == nil {
 			continue
@@ -125,11 +120,9 @@ func (d *protoDecoder) processDecoded(v *dto.MetricFamily) error {
 			if !model.LabelValue(l.GetValue()).IsValid() {
 				return fmt.Errorf("invalid label value %q", l.GetValue())
 			}
-			lname := model.UnescapeName(l.GetName(), d.escaping)
-			if !model.LabelName(lname).IsValid() {
-				return fmt.Errorf("invalid label name %q", lname)
+			if !model.LabelName(l.GetName()).IsValid() {
+				return fmt.Errorf("invalid label name %q", l.GetName())
 			}
-			*l.Name = lname
 		}
 	}
 	return nil
@@ -138,7 +131,6 @@ func (d *protoDecoder) processDecoded(v *dto.MetricFamily) error {
 // textDecoder implements the Decoder interface for the text protocol.
 type textDecoder struct {
 	r    io.Reader
-	escaping model.EscapingScheme
 	fams map[string]*dto.MetricFamily
 	err  error
 }
@@ -148,7 +140,6 @@ func (d *textDecoder) Decode(v *dto.MetricFamily) error {
 	if d.err == nil {
 		// Read all metrics in one shot.
 		var p TextParser
-		// XXXXXXXXXXXX this is the thing the other guy was going to work on
 		d.fams, d.err = p.TextToMetricFamilies(d.r)
 		// If we don't get an error, store io.EOF for the end.
 		if d.err == nil {
