@@ -61,6 +61,7 @@ func ResponseFormat(h http.Header) Format {
 		return FmtProtoDelim
 
 	case textType:
+        // XXXX this is probably wrong.
 		if v, ok := params["version"]; ok && v != TextVersion_0_0_4 {
 			return FmtUnknown
 		}
