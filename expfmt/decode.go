@@ -98,8 +98,6 @@ func (d *protoDecoder) Decode(v *dto.MetricFamily) error {
 	if err := opts.UnmarshalFrom(bufio.NewReader(d.r), v); err != nil {
 		return err
 	}
-	// XXXXX is there any reason some metrics would be utf 8 and some would be
-	// legacy?  I feel like that has to be a universal for the scraper.
 	if !model.IsValidMetricName(model.LabelValue(v.GetName())) {
 		return fmt.Errorf("invalid metric name %q", v.GetName())
 	}
