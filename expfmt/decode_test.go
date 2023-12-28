@@ -433,6 +433,10 @@ func testDiscriminatorHTTPHeader(t testing.TB) {
 			output: FmtUnknown,
 		},
 		{
+			input:  map[string]string{"Content-Type": `text/plain; version=1.0.0`},
+			output: FmtText_1_0_0,
+		},
+		{
 			input:  map[string]string{"Content-Type": `text/plain; version=0.0.4`},
 			output: FmtText_0_0_4,
 		},

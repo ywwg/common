@@ -45,15 +45,15 @@ const (
 
 	// The Content-Type values for the different wire protocols. Do not do direct
 	// to comparisons to these constants, instead use the comparison functions.
-	FmtUnknown                Format = `<unknown>`
-	FmtText_0_0_4             Format = `text/plain; version=` + TextVersion_0_0_4 + `; charset=utf-8`
-	FmtText_1_0_0             Format = `text/plain; version=` + TextVersion_1_0_0 + `; charset=utf-8`
-	FmtProtoDelim             Format = ProtoFmt + ` encoding=delimited`
-	FmtProtoText              Format = ProtoFmt + ` encoding=text`
-	FmtProtoCompact           Format = ProtoFmt + ` encoding=compact-text`
-	FmtOpenMetrics_0_0_1      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_0_0_1 + `; charset=utf-8`
-	FmtOpenMetrics_1_0_0      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_1_0_0 + `; charset=utf-8`
-	FmtOpenMetrics_2_0_0      Format = OpenMetricsType + `; version=` + OpenMetricsVersion_2_0_0 + `; charset=utf-8`
+	FmtUnknown           Format = `<unknown>`
+	FmtText_0_0_4        Format = `text/plain; version=` + TextVersion_0_0_4 + `; charset=utf-8`
+	FmtText_1_0_0        Format = `text/plain; version=` + TextVersion_1_0_0 + `; charset=utf-8`
+	FmtProtoDelim        Format = ProtoFmt + ` encoding=delimited`
+	FmtProtoText         Format = ProtoFmt + ` encoding=text`
+	FmtProtoCompact      Format = ProtoFmt + ` encoding=compact-text`
+	FmtOpenMetrics_0_0_1 Format = OpenMetricsType + `; version=` + OpenMetricsVersion_0_0_1 + `; charset=utf-8`
+	FmtOpenMetrics_1_0_0 Format = OpenMetricsType + `; version=` + OpenMetricsVersion_1_0_0 + `; charset=utf-8`
+	FmtOpenMetrics_2_0_0 Format = OpenMetricsType + `; version=` + OpenMetricsVersion_2_0_0 + `; charset=utf-8`
 
 	// UTF8 and Escaping Formats
 	FmtUTF8Param         Format = `; validchars=utf8`
@@ -96,96 +96,81 @@ func (f Format) ContentType() FormatType {
 		}
 		params[strings.TrimSpace(args[0])] = strings.TrimSpace(args[1])
 	}
-	
+
 	switch strings.TrimSpace(toks[0]) {
-		case ProtoType:
-			if params["proto"] != ProtoProtocol {
-				return TypeUnknown
-			}
-			switch params["encoding"] {
-				case "delimited":
-					return TypeProtoDelim
-				case "text":
-					return TypeProtoText
-				case "compact-text":
-					return TypeProtoCompact
-				default:
-					return TypeUnknown
-			}
-		case OpenMetricsType:
-			if params["charset"] != "utf-8" {
-				return TypeUnknown
-			}
-			return TypeOpenMetrics
-		case "text/plain":
-			if params["charset"] != "utf-8" {
-				return TypeUnknown
-			}
-			return TypeTextPlain
+	case ProtoType:
+		if params["proto"] != ProtoProtocol {
+			return TypeUnknown
+		}
+		switch params["encoding"] {
+		case "delimited":
+			return TypeProtoDelim
+		case "text":
+			return TypeProtoText
+		case "compact-text":
+			return TypeProtoCompact
 		default:
 			return TypeUnknown
+		}
+	case OpenMetricsType:
+		if params["charset"] != "utf-8" {
+			return TypeUnknown
+		}
+		return TypeOpenMetrics
+	case "text/plain":
+		v, ok := params["version"]
+		if !ok {
+			return TypeTextPlain
+		}
+		if v == TextVersion_0_0_4 || v == TextVersion_1_0_0 {
+			return TypeTextPlain
+		}
+		return TypeUnknown
+	default:
+		return TypeUnknown
 	}
 }
 
 func EscapingSchemeToFormat(s model.EscapingScheme) Format {
 	switch s {
-		case model.NoEscaping:
-			return FmtEscapeNone
-		case model.UnderscoreEscaping:
-			return FmtEscapeUnderscores
-		case model.DotsEscaping:
-			return FmtEscapeDots
-		case model.ValueEncodingEscaping:
-			return FmtEscapeValues
-		default:
-			panic(fmt.Sprintf("unknown escaping scheme %d", s))
+	case model.NoEscaping:
+		return FmtEscapeNone
+	case model.UnderscoreEscaping:
+		return FmtEscapeUnderscores
+	case model.DotsEscaping:
+		return FmtEscapeDots
+	case model.ValueEncodingEscaping:
+		return FmtEscapeValues
+	default:
+		panic(fmt.Sprintf("unknown escaping scheme %d", s))
 	}
 }
 
 func (format Format) ToEscapingScheme() model.EscapingScheme {
-	// XXXXXXXXXXXX this should be ParseContentType, not ParseAccept -- however
-	// the basic parsing algo is probably fine? and then we can have a more
-	// intelligent way of matching format than the string comparisons.
-
-	// Probably, Format needs to be a proper class with matcher functions rather
-	// than this thing we've got. Naturally people use the old strings everywhere
-	// but I don't think that's ok.
 	for _, p := range strings.Split(string(format), ";") {
 		toks := strings.Split(p, "=")
 		if len(toks) != 2 {
 			continue
 		}
+		key, value := strings.TrimSpace(toks[0]), strings.TrimSpace(toks[1])
 		// By definition, if utf8 is allowed then names are not escaped.
-		if strings.TrimSpace(toks[0]) == "validchars" && strings.TrimSpace(toks[1]) == "utf8" {
+		if key == "validchars" && value == "utf8" {
 			return model.NoEscaping
 		}
-		if strings.TrimSpace(toks[0]) == "escaping" {
-			switch f := Format(strings.TrimSpace(toks[1])); f {
-				case FmtEscapeNone:
-					return model.NoEscaping
-				case FmtEscapeUnderscores:
-					return model.UnderscoreEscaping
-				case FmtEscapeDots :
-					return model.DotsEscaping
-				case FmtEscapeValues:
-					return model.ValueEncodingEscaping
-				default:
-					panic("unknown format scheme "+f)
+		if key == "escaping" {
+			switch f := Format(value); f {
+			case FmtEscapeNone:
+				return model.NoEscaping
+			case FmtEscapeUnderscores:
+				return model.UnderscoreEscaping
+			case FmtEscapeDots:
+				return model.DotsEscaping
+			case FmtEscapeValues:
+				return model.ValueEncodingEscaping
+			default:
+				panic("unknown format scheme " + f)
 			}
 		}
 	}
 	return model.DefaultNameEscapingScheme
 }
-
-// func (format Format) UTF8NamesValid() bool {
-// 	for _, p := range strings.Split(string(format), ";") {
-// 		toks := strings.Split(p, "=")
-// 		if len(toks) != 2 {
-// 			continue
-// 		}
-// 		if strings.TrimSpace(toks[0]) == "validchars" {
-// 			return strings.TrimSpace(toks[1]) == "utf8"  
-// 		}
-// 	} 
-// 	return false
-// }

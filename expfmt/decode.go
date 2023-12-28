@@ -61,8 +61,12 @@ func ResponseFormat(h http.Header) Format {
 		return FmtProtoDelim
 
 	case textType:
-        // XXXX this is probably wrong.
-		if v, ok := params["version"]; ok && v != TextVersion_0_0_4 {
+		if v, ok := params["version"]; ok {
+			if v == TextVersion_0_0_4 {
+				return FmtText_0_0_4
+			} else if v == TextVersion_1_0_0 {
+				return FmtText_1_0_0
+			} 
 			return FmtUnknown
 		}
 		return FmtText_0_0_4
@@ -88,25 +92,14 @@ type protoDecoder struct {
 
 // Decode implements the Decoder interface.
 func (d *protoDecoder) Decode(v *dto.MetricFamily) error {
-	// XXXXXXXXXXXXXX we know the escaping scheme, but do we also need
-	// to pass in a validation scheme???  I am sitting here decoding stuff that's
-	// coming in, presumably it's only escaped if we negotiated that UTF8 isn't
-	// allowed.   Therefore we do nothing, I think.
-
-	// XXXXXXXXXXXXXXXX ok so the format will either have nothing, an escaping,
-	// or a validchars=utf8.  That's what we need to do here.
-
-	// what if validchars and also default is escaping??
-
-	// oof, I think this was all wrong. if it's escaped, it's escaped.
-	// validity-checking is all we need -- OR, do we need to check validity on a
-	// per-call basis? I don't think so... we just go with the default
 	opts := protodelim.UnmarshalOptions{
 		MaxSize: -1,
 	}
 	if err := opts.UnmarshalFrom(bufio.NewReader(d.r), v); err != nil {
 		return err
 	}
+	// XXXXX is there any reason some metrics would be utf 8 and some would be
+	// legacy?  I feel like that has to be a universal for the scraper.
 	if !model.IsValidMetricName(model.LabelValue(v.GetName())) {
 		return fmt.Errorf("invalid metric name %q", v.GetName())
 	}
