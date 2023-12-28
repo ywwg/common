@@ -79,7 +79,7 @@ var (
 
 	// DefaultNameEscapingScheme defines the default way that names will be
 	// escaped when presented to systems that do not support UTF-8 names.
-	DefaultNameEscapingScheme = UnderscoreEscaping
+	DefaultNameEscapingScheme = ValueEncodingEscaping
 )
 
 // A Metric is similar to a LabelSet, but the key difference is that a Metric is
