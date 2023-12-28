@@ -31,7 +31,7 @@ func TestCreate(t *testing.T) {
 	defer func() {
 		model.DefaultNameEscapingScheme = oldDefaultScheme
 	}()
-	
+
 	scenarios := []struct {
 		in  *dto.MetricFamily
 		out string

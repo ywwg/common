@@ -167,7 +167,7 @@ func IsValidLegacyMetricName(n LabelValue) bool {
 		return false
 	}
 	for i, b := range n {
-		if !isLegacyValidRune(b, i) {
+		if !isValidLegacyRune(b, i) {
 			return false
 		}
 	}
@@ -257,8 +257,8 @@ const (
 
 // EscapeName escapes the incoming name according to the provided escaping
 // scheme. Depending on the rules of escaping, this may cause no change in the
-// string that is returned. (Especially NoEscaping, which by definition is a noop).
-// This function does not do any validation of the name.
+// string that is returned. (Especially NoEscaping, which by definition is a
+// noop). This function does not do any validation of the name.
 func EscapeName(name string, scheme EscapingScheme) string {
 	if len(name) == 0 {
 		return name
@@ -272,7 +272,7 @@ func EscapeName(name string, scheme EscapingScheme) string {
 			return name
 		}
 		for i, b := range name {
-			if isLegacyValidRune(b, i) {
+			if isValidLegacyRune(b, i) {
 				escaped.WriteRune(b)
 			} else {
 				escaped.WriteRune('_')
@@ -286,7 +286,7 @@ func EscapeName(name string, scheme EscapingScheme) string {
 				escaped.WriteString("__")
 			} else if b == '.' {
 				escaped.WriteString("_dot_")
-			} else if isLegacyValidRune(b, i) {
+			} else if isValidLegacyRune(b, i) {
 				escaped.WriteRune(b)
 			} else {
 				escaped.WriteRune('_')
@@ -299,7 +299,7 @@ func EscapeName(name string, scheme EscapingScheme) string {
 		}
 		escaped.WriteString("U__")
 		for i, b := range name {
-			if isLegacyValidRune(b, i) {
+			if isValidLegacyRune(b, i) {
 				escaped.WriteRune(b)
 			} else if !utf8.ValidRune(b) {
 				escaped.WriteString("_FFFD_")
@@ -329,8 +329,8 @@ func lower(c byte) byte {
 }
 
 // UnescapeName unescapes the incoming name according to the provided escaping
-// scheme if possible. Some schemes are partially or totall non-roundtripable. If any error is enountered, returns the original
-// input.
+// scheme if possible. Some schemes are partially or totally non-roundtripable.
+// If any error is enountered, returns the original input.
 func UnescapeName(name string, scheme EscapingScheme) string {
 	if len(name) == 0 {
 		return name
@@ -404,6 +404,6 @@ func UnescapeName(name string, scheme EscapingScheme) string {
 	}
 }
 
-func isLegacyValidRune(b rune, i int) bool {
+func isValidLegacyRune(b rune, i int) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == ':' || (b >= '0' && b <= '9' && i > 0)
 }

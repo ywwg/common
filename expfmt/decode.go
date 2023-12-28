@@ -66,7 +66,7 @@ func ResponseFormat(h http.Header) Format {
 				return FmtText_0_0_4
 			} else if v == TextVersion_1_0_0 {
 				return FmtText_1_0_0
-			} 
+			}
 			return FmtUnknown
 		}
 		return FmtText_0_0_4
