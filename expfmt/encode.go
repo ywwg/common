@@ -62,11 +62,12 @@ func (ec encoderCloser) Close() error {
 // as the support is still experimental. To include the option to negotiate
 // FmtOpenMetrics, use NegotiateOpenMetrics.
 func Negotiate(h http.Header) Format {
-	escapingScheme := Format(fmt.Sprintf("; escaping=%s", EscapingSchemeToFormat(model.DefaultNameEscapingScheme)))
+	fmt.Println("NEGOTIATE 2", h)
+	escapingScheme := Format(fmt.Sprintf("; escaping=%s", Format(model.DefaultNameEscapingScheme.String())))
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
 		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
 			switch Format(escapeParam) {
-				case FmtEscapeNone, FmtEscapeUnderscores, FmtEscapeDots, FmtEscapeValues:
+				case model.EscapeNone, model.EscapeUnderscores, model.EscapeDots, model.EscapeValues:
 					escapingScheme = Format(fmt.Sprintf("; escaping=%s", escapeParam))
 				default:
 				// If the escaping parameter is unknown, ignore it.
@@ -112,11 +113,12 @@ func Negotiate(h http.Header) Format {
 // temporary and will disappear once FmtOpenMetrics is fully supported and as
 // such may be negotiated by the normal Negotiate function.
 func NegotiateIncludingOpenMetrics(h http.Header) Format {
-	escapingScheme := Format(fmt.Sprintf("; escaping=%s", EscapingSchemeToFormat(model.DefaultNameEscapingScheme)))
+	fmt.Println("NEGOTIATE 1", h)
+	escapingScheme := Format(fmt.Sprintf("; escaping=%s", Format(model.DefaultNameEscapingScheme.String())))
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
 		if escapeParam := ac.Params["escaping"]; escapeParam != "" {
 			switch Format(escapeParam) {
-				case FmtEscapeNone, FmtEscapeUnderscores, FmtEscapeDots, FmtEscapeValues:
+				case model.EscapeNone, model.EscapeUnderscores, model.EscapeDots, model.EscapeValues:
 					escapingScheme = Format(fmt.Sprintf("; escaping=%s", escapeParam))
 				default:
 				// If the escaping parameter is unknown, ignore it.
@@ -161,13 +163,14 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 					}
 					return FmtOpenMetrics_2_0_0 + escapingScheme
 				case OpenMetricsVersion_1_0_0:
+					fmt.Println("NEGOTIATE result open", FmtOpenMetrics_1_0_0 + escapingScheme)
 					return FmtOpenMetrics_1_0_0 + escapingScheme
 				default:
 					return FmtOpenMetrics_0_0_1 + escapingScheme
 			}
 		}
 	}
-	return FmtText_0_0_4 + Format(fmt.Sprintf("; escaping=%s", FmtEscapeValues))
+	return FmtText_0_0_4 + Format(fmt.Sprintf("; escaping=%s", model.EscapeValues))
 }
 
 // NewEncoder returns a new encoder based on content type negotiation. All

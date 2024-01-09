@@ -15,7 +15,6 @@
 package expfmt
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/prometheus/common/model"
@@ -57,10 +56,6 @@ const (
 
 	// UTF8 and Escaping Formats
 	FmtUTF8Param         Format = `; validchars=utf8`
-	FmtEscapeNone        Format = "none"
-	FmtEscapeUnderscores Format = "underscores"
-	FmtEscapeDots        Format = "dots"
-	FmtEscapeValues      Format = "values"
 )
 
 const (
@@ -131,20 +126,20 @@ func (f Format) ContentType() FormatType {
 	}
 }
 
-func EscapingSchemeToFormat(s model.EscapingScheme) Format {
-	switch s {
-	case model.NoEscaping:
-		return FmtEscapeNone
-	case model.UnderscoreEscaping:
-		return FmtEscapeUnderscores
-	case model.DotsEscaping:
-		return FmtEscapeDots
-	case model.ValueEncodingEscaping:
-		return FmtEscapeValues
-	default:
-		panic(fmt.Sprintf("unknown escaping scheme %d", s))
-	}
-}
+// func EscapingSchemeToFormat(s model.EscapingScheme) Format {
+// 	switch s {
+// 	case model.NoEscaping:
+// 		return model.EscapeNone
+// 	case model.UnderscoreEscaping:
+// 		return model.EscapeUnderscores
+// 	case model.DotsEscaping:
+// 		return model.EscapeDots
+// 	case model.ValueEncodingEscaping:
+// 		return model.EscapeValues
+// 	default:
+// 		panic(fmt.Sprintf("unknown escaping scheme %d", s))
+// 	}
+// }
 
 func (format Format) ToEscapingScheme() model.EscapingScheme {
 	for _, p := range strings.Split(string(format), ";") {
@@ -158,18 +153,7 @@ func (format Format) ToEscapingScheme() model.EscapingScheme {
 			return model.NoEscaping
 		}
 		if key == "escaping" {
-			switch f := Format(value); f {
-			case FmtEscapeNone:
-				return model.NoEscaping
-			case FmtEscapeUnderscores:
-				return model.UnderscoreEscaping
-			case FmtEscapeDots:
-				return model.DotsEscaping
-			case FmtEscapeValues:
-				return model.ValueEncodingEscaping
-			default:
-				panic("unknown format scheme " + f)
-			}
+			return model.ToEscapingScheme(value)
 		}
 	}
 	return model.DefaultNameEscapingScheme
