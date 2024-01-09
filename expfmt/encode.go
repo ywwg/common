@@ -168,7 +168,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case FmtProtoDelim:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
-				_, err := fmt.Fprintln(w, model.EscapeMetricFamily(v, model.DefaultNameEscapingScheme).String())
+				_, err := fmt.Fprintln(w, model.EscapeMetricFamily(v, escapingScheme).String())
 				return err
 			},
 			close: func() error { return nil },
@@ -176,7 +176,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case TypeProtoText:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
-				_, err := fmt.Fprintln(w, prototext.Format(model.EscapeMetricFamily(v, model.DefaultNameEscapingScheme)))
+				_, err := fmt.Fprintln(w, prototext.Format(model.EscapeMetricFamily(v, escapingScheme)))
 				return err
 			},
 			close: func() error { return nil },
@@ -184,7 +184,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case TypeTextPlain:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
-				_, err := MetricFamilyToText(w, model.EscapeMetricFamily(v, model.DefaultNameEscapingScheme))
+				_, err := MetricFamilyToText(w, model.EscapeMetricFamily(v, escapingScheme))
 				return err
 			},
 			close: func() error { return nil },
@@ -192,7 +192,7 @@ func NewEncoder(w io.Writer, format Format) Encoder {
 	case TypeOpenMetrics:
 		return encoderCloser{
 			encode: func(v *dto.MetricFamily) error {
-				_, err := MetricFamilyToOpenMetrics(w, model.EscapeMetricFamily(v, model.DefaultNameEscapingScheme))
+				_, err := MetricFamilyToOpenMetrics(w, model.EscapeMetricFamily(v, escapingScheme))
 				return err
 			},
 			close: func() error {

@@ -58,6 +58,13 @@ const (
 	ValueEncodingEscaping
 )
 
+const (
+	EscapeNone         = "none"
+	EscapeUnderscores  = "underscores"
+	EscapeDots         = "dots"
+	EscapeValues       = "values"
+)
+
 var (
 	// NameValidationScheme determines the method of name validation to be used by
 	// all calls to IsValidMetricName() and LabelName IsValid(). Setting UTF8 mode
@@ -408,4 +415,34 @@ func UnescapeName(name string, scheme EscapingScheme) string {
 
 func isValidLegacyRune(b rune, i int) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || b == '_' || b == ':' || (b >= '0' && b <= '9' && i > 0)
+}
+
+func (e EscapingScheme) String() string {
+	switch e {
+	case NoEscaping:
+		return EscapeNone
+	case UnderscoreEscaping:
+		return EscapeUnderscores
+	case DotsEscaping:
+		return EscapeDots
+	case ValueEncodingEscaping:
+		return EscapeValues
+	default:
+		panic(fmt.Sprintf("unknown format scheme %d", e))
+	}
+}
+
+func ToEscapingScheme(s string) (EscapingScheme, error) {
+	switch s {
+	case EscapeNone:
+		return NoEscaping, nil
+	case EscapeUnderscores:
+		return UnderscoreEscaping, nil
+	case EscapeDots:
+		return DotsEscaping, nil
+	case EscapeValues:
+		return ValueEncodingEscaping, nil
+	default:
+	  return NoEscaping, fmt.Errorf("unknown format scheme " + s)
+	}
 }

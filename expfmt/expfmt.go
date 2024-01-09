@@ -123,3 +123,18 @@ func (f Format) ContentType() FormatType {
 		return TypeUnknown
 	}
 }
+
+func (format Format) SupportsUTF8() bool {
+	for _, p := range strings.Split(string(format), ";") {
+		toks := strings.Split(p, "=")
+		if len(toks) != 2 {
+			continue
+		}
+		key, value := strings.TrimSpace(toks[0]), strings.TrimSpace(toks[1])
+		// By definition, if utf8 is allowed then names are not escaped.
+		if key == "validchars" && value == "utf8" {
+			return true
+		}
+	}
+	return false
+}
