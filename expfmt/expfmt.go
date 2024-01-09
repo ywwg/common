@@ -16,8 +16,6 @@ package expfmt
 
 import (
 	"strings"
-
-	"github.com/prometheus/common/model"
 )
 
 // Format specifies the HTTP content type of the different wire protocols.
@@ -124,37 +122,4 @@ func (f Format) ContentType() FormatType {
 	default:
 		return TypeUnknown
 	}
-}
-
-// func EscapingSchemeToFormat(s model.EscapingScheme) Format {
-// 	switch s {
-// 	case model.NoEscaping:
-// 		return model.EscapeNone
-// 	case model.UnderscoreEscaping:
-// 		return model.EscapeUnderscores
-// 	case model.DotsEscaping:
-// 		return model.EscapeDots
-// 	case model.ValueEncodingEscaping:
-// 		return model.EscapeValues
-// 	default:
-// 		panic(fmt.Sprintf("unknown escaping scheme %d", s))
-// 	}
-// }
-
-func (format Format) ToEscapingScheme() model.EscapingScheme {
-	for _, p := range strings.Split(string(format), ";") {
-		toks := strings.Split(p, "=")
-		if len(toks) != 2 {
-			continue
-		}
-		key, value := strings.TrimSpace(toks[0]), strings.TrimSpace(toks[1])
-		// By definition, if utf8 is allowed then names are not escaped.
-		if key == "validchars" && value == "utf8" {
-			return model.NoEscaping
-		}
-		if key == "escaping" {
-			return model.ToEscapingScheme(value)
-		}
-	}
-	return model.DefaultNameEscapingScheme
 }
