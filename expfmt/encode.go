@@ -62,28 +62,21 @@ func (ec encoderCloser) Close() error {
 // as the support is still experimental. To include the option to negotiate
 // FmtOpenMetrics, use NegotiateOpenMetrics.
 func Negotiate(h http.Header) Format {
-	fmt.Println("NEGOTIATE 2", h)
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
 		ver := ac.Params["version"]
 		if ac.Type+"/"+ac.SubType == ProtoType && ac.Params["proto"] == ProtoProtocol {
+			utf8Suffix := Format("")
 			if ac.Params["validchars"] == UTF8Valid {
-				switch ac.Params["encoding"] {
-				case "delimited":
-					return FmtProtoDelim + FmtUTF8Param
-				case "text":
-					return FmtProtoText + FmtUTF8Param
-				case "compact-text":
-					return FmtProtoCompact + FmtUTF8Param
-				}
+				utf8Suffix = FmtUTF8Param
 			}
 
 			switch ac.Params["encoding"] {
 			case "delimited":
-				return FmtProtoDelim
+				return FmtProtoDelim + utf8Suffix
 			case "text":
-				return FmtProtoText
+				return FmtProtoText + utf8Suffix
 			case "compact-text":
-				return FmtProtoCompact
+				return FmtProtoCompact + utf8Suffix
 			}
 		}
 		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_0_0_4 || ver == TextVersion_1_0_0 || ver == "") {
@@ -104,28 +97,21 @@ func Negotiate(h http.Header) Format {
 // temporary and will disappear once FmtOpenMetrics is fully supported and as
 // such may be negotiated by the normal Negotiate function.
 func NegotiateIncludingOpenMetrics(h http.Header) Format {
-	fmt.Println("NEGOTIATE 1", h)
 	for _, ac := range goautoneg.ParseAccept(h.Get(hdrAccept)) {
 		ver := ac.Params["version"]
 		if ac.Type+"/"+ac.SubType == ProtoType && ac.Params["proto"] == ProtoProtocol {
+			utf8Suffix := Format("")
 			if ac.Params["validchars"] == UTF8Valid {
-				switch ac.Params["encoding"] {
-				case "delimited":
-					return FmtProtoDelim + FmtUTF8Param
-				case "text":
-					return FmtProtoText + FmtUTF8Param
-				case "compact-text":
-					return FmtProtoCompact + FmtUTF8Param
-				}
+				utf8Suffix = FmtUTF8Param
 			}
 
 			switch ac.Params["encoding"] {
 			case "delimited":
-				return FmtProtoDelim
+				return FmtProtoDelim + utf8Suffix
 			case "text":
-				return FmtProtoText
+				return FmtProtoText + utf8Suffix
 			case "compact-text":
-				return FmtProtoCompact
+				return FmtProtoCompact + utf8Suffix
 			}
 		}
 		if ac.Type == "text" && ac.SubType == "plain" && (ver == TextVersion_1_0_0 || ver == "") {
@@ -145,7 +131,6 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 					}
 					return FmtOpenMetrics_2_0_0
 				case OpenMetricsVersion_1_0_0:
-					fmt.Println("NEGOTIATE result open", FmtOpenMetrics_1_0_0)
 					return FmtOpenMetrics_1_0_0
 				default:
 					return FmtOpenMetrics_0_0_1
@@ -161,6 +146,8 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 // for FmtOpenMetrics, but a future (breaking) release will add the Close method
 // to the Encoder interface directly. The current version of the Encoder
 // interface is kept for backwards compatibility.
+// In cases where the Format does not allow for UTF8 names, the global
+// NameEscapingScheme will be applied.
 func NewEncoder(w io.Writer, format Format) Encoder {
 	escapingScheme := format.ToEscapingScheme()
 	

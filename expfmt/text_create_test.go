@@ -26,10 +26,10 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	oldDefaultScheme := model.DefaultNameEscapingScheme
-	model.DefaultNameEscapingScheme = model.NoEscaping
+	oldDefaultScheme := model.NameEscapingScheme
+	model.NameEscapingScheme = model.NoEscaping
 	defer func() {
-		model.DefaultNameEscapingScheme = oldDefaultScheme
+		model.NameEscapingScheme = oldDefaultScheme
 	}()
 
 	scenarios := []struct {

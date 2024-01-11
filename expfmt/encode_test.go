@@ -87,10 +87,10 @@ func TestNegotiate(t *testing.T) {
 		},
 	}
 
-	oldDefault := model.DefaultNameEscapingScheme
-	model.DefaultNameEscapingScheme = model.UnderscoreEscaping
+	oldDefault := model.NameEscapingScheme
+	model.NameEscapingScheme = model.UnderscoreEscaping
 	defer func() {
-		model.DefaultNameEscapingScheme = oldDefault
+		model.NameEscapingScheme = oldDefault
 	}()
 
 	for i, test := range tests {
@@ -204,10 +204,10 @@ func TestNegotiateOpenMetrics(t *testing.T) {
 		},
 	}
 
-	oldDefault := model.DefaultNameEscapingScheme
-	model.DefaultNameEscapingScheme = model.ValueEncodingEscaping
+	oldDefault := model.NameEscapingScheme
+	model.NameEscapingScheme = model.ValueEncodingEscaping
 	defer func() {
-		model.DefaultNameEscapingScheme = oldDefault
+		model.NameEscapingScheme = oldDefault
 	}()
 
 	for i, test := range tests {

@@ -61,6 +61,10 @@ const (
 	hdrAccept      = "Accept"
 )
 
+// FormatType is a Go enum representing the overall category for the given
+// Format. As the number of Format permutations increases, doing basic string
+// comparisons are not feasible, so this enum captures the most useful
+// high-level attribute of the Format string.
 type FormatType int
 
 const (
@@ -72,7 +76,8 @@ const (
 	TypeOpenMetrics
 )
 
-func (f Format) ContentType() FormatType {
+// FormatType deduces an overall FormatType for the given format.
+func (f Format) FormatType() FormatType {
 	toks := strings.Split(string(f), ";")
 	if len(toks) < 2 {
 		return TypeUnknown
@@ -124,6 +129,7 @@ func (f Format) ContentType() FormatType {
 	}
 }
 
+// SupportsUTF8 returns true iff the Format contains a validchars=utf8 term.
 func (format Format) SupportsUTF8() bool {
 	for _, p := range strings.Split(string(format), ";") {
 		toks := strings.Split(p, "=")
@@ -131,7 +137,6 @@ func (format Format) SupportsUTF8() bool {
 			continue
 		}
 		key, value := strings.TrimSpace(toks[0]), strings.TrimSpace(toks[1])
-		// By definition, if utf8 is allowed then names are not escaped.
 		if key == "validchars" && value == "utf8" {
 			return true
 		}

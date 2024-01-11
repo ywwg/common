@@ -78,7 +78,7 @@ func ResponseFormat(h http.Header) Format {
 // NewDecoder returns a new decoder based on the given input format.
 // If the input format does not imply otherwise, a text format decoder is returned.
 func NewDecoder(r io.Reader, format Format) Decoder {
-	switch format.ContentType() {
+	switch format.FormatType() {
 	case TypeProtoDelim:
 		return &protoDecoder{r: r}
 	}
