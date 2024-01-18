@@ -53,7 +53,7 @@ const (
 	FmtOpenMetrics_2_0_0 Format = OpenMetricsType + `; version=` + OpenMetricsVersion_2_0_0 + `; charset=utf-8`
 
 	// UTF8 and Escaping Formats
-	FmtUTF8Param         Format = `; validchars=utf8`
+	FmtUTF8Param Format = `; validchars=utf8`
 )
 
 const (

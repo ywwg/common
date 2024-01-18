@@ -19,8 +19,9 @@ import (
 	"net/http"
 
 	"google.golang.org/protobuf/encoding/protodelim"
-	"github.com/prometheus/common/model"
 	"google.golang.org/protobuf/encoding/prototext"
+
+	"github.com/prometheus/common/model"
 
 	"github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg"
 
@@ -125,15 +126,15 @@ func NegotiateIncludingOpenMetrics(h http.Header) Format {
 		}
 		if ac.Type+"/"+ac.SubType == OpenMetricsType && (ver == OpenMetricsVersion_0_0_1 || ver == OpenMetricsVersion_1_0_0 || ver == OpenMetricsVersion_2_0_0 || ver == "") {
 			switch ver {
-				case OpenMetricsVersion_2_0_0:
-					if ac.Params["validchars"] == UTF8Valid {
-						return FmtOpenMetrics_2_0_0 + FmtUTF8Param
-					}
-					return FmtOpenMetrics_2_0_0
-				case OpenMetricsVersion_1_0_0:
-					return FmtOpenMetrics_1_0_0
-				default:
-					return FmtOpenMetrics_0_0_1
+			case OpenMetricsVersion_2_0_0:
+				if ac.Params["validchars"] == UTF8Valid {
+					return FmtOpenMetrics_2_0_0 + FmtUTF8Param
+				}
+				return FmtOpenMetrics_2_0_0
+			case OpenMetricsVersion_1_0_0:
+				return FmtOpenMetrics_1_0_0
+			default:
+				return FmtOpenMetrics_0_0_1
 			}
 		}
 	}

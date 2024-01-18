@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	dto "github.com/prometheus/client_model/go"
+
 	"github.com/prometheus/common/model"
 )
 

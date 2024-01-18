@@ -18,9 +18,11 @@ import (
 	"net/http"
 	"testing"
 
-	dto "github.com/prometheus/client_model/go"
-	"github.com/prometheus/common/model"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/prometheus/common/model"
+
+	dto "github.com/prometheus/client_model/go"
 )
 
 func TestNegotiate(t *testing.T) {
@@ -294,7 +296,6 @@ func TestEncode(t *testing.T) {
 	}
 }
 
-
 func TestEscapedEncode(t *testing.T) {
 	var buff bytes.Buffer
 	delimEncoder := NewEncoder(&buff, FmtProtoDelim+"; escaping=underscores")
@@ -310,7 +311,7 @@ func TestEscapedEncode(t *testing.T) {
 			{
 				Label: []*dto.LabelPair{
 					{
-						Name: proto.String("dotted.label.name"),
+						Name:  proto.String("dotted.label.name"),
 						Value: proto.String("my.label.value"),
 					},
 				},

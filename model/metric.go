@@ -59,10 +59,10 @@ const (
 )
 
 const (
-	EscapeNone         = "none"
-	EscapeUnderscores  = "underscores"
-	EscapeDots         = "dots"
-	EscapeValues       = "values"
+	EscapeNone        = "none"
+	EscapeUnderscores = "underscores"
+	EscapeDots        = "dots"
+	EscapeValues      = "values"
 )
 
 var (
@@ -446,6 +446,6 @@ func ToEscapingScheme(s string) (EscapingScheme, error) {
 	case EscapeValues:
 		return ValueEncodingEscaping, nil
 	default:
-	  return NoEscaping, fmt.Errorf("unknown format scheme " + s)
+		return NoEscaping, fmt.Errorf("unknown format scheme " + s)
 	}
 }
