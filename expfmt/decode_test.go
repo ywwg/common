@@ -373,7 +373,7 @@ func TestProtoDecoder(t *testing.T) {
 			model.NameValidationScheme = model.LegacyValidation
 			var smpls model.Vector
 			err := dec.Decode(&smpls)
-			if err == io.EOF {
+			if err != nil && errors.Is(err, io.EOF) {
 				break
 			}
 			if scenario.legacyNameFail {
